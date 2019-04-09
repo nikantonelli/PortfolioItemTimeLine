@@ -348,11 +348,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                 var y0 = source.node().getCTM().f  + (source.node().getBBox().height/2);
                                 var y1 = target.node().getCTM().f + (target.node().getBBox().height/2);
 
-                                //The centre point for the curve should be halfway
-                                var x2 = x0 + ((x1 - x0)/4);
-                                var y2 = y0 + ((y1 - y0)/4);
-                                var x3 = x0 + ((x1 - x0)/2);
-                                var y3 = y0 + ((y1 - y0)/2);
                                 var zoomTree = d3.select('#zoomTree');
                                 var zClass = '';
                                 if (gApp._schedulingError( d, e)) {
@@ -374,8 +369,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                 zoomTree.append('path')
                                     .attr('d', 
                                         'M' + x0 + ',' + y0 + 
-                                        'C' + (x0+100) + ',' + (y0 + (y1>y0?-80:80))  +
-                                        ' ' + (x1-100) + ',' + (y1 + (y1>y0?80:-80)) +
+                                        'C' + (x0+150) + ',' + (y0 + (y1-y0)/8)  +
+                                        ' ' + (x1-150) + ',' + (y1 - (y1-y0)/8) +
                                         ' ' + x1 + ',' + y1) 
                                     .attr('class', zClass);
 
