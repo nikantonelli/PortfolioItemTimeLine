@@ -334,14 +334,61 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             if (deps && deps.Count) {
                 gApp._getSuccessors(d.data.record).then (
                     {
-                        success: function(a,b,c,d,e,f) {
-                            debugger;
+                        success: function(succs) {
                             //Draw a circle on the end of the first one and make it flash if I can't find the end one
+                            _.each(succs, function(succ) {
+                                var e = gApp._findTreeNode(gApp._getNodeTreeRecordId(succ));
+                                if (!e) { return;}
+                                var target = d3.select('#rect-'+e.data.Name);
+                                var source = d3.select('#rect-'+d.data.Name);
+                                //The x is easy from the boxes
+                                var x0 = source.node().getBBox().x + source.node().getBBox().width;
+                                var x1 = target.node().getBBox().x;
+                                //The y needs relative to the zoomTree element
+                                var y0 = source.node().getCTM().f  + (source.node().getBBox().height/2);
+                                var y1 = target.node().getCTM().f + (target.node().getBBox().height/2);
+
+                                //The centre point for the curve should be halfway
+                                var x2 = x0 + ((x1 - x0)/4);
+                                var y2 = y0 + ((y1 - y0)/4);
+                                var x3 = x0 + ((x1 - x0)/2);
+                                var y3 = y0 + ((y1 - y0)/2);
+                                var zoomTree = d3.select('#zoomTree');
+                                var zClass = '';
+                                if (gApp._schedulingError( d, e)) {
+                                    zClass += 'data--errors';
+                                }
+                                else {
+                                    zClass += 'no--errors';
+                                }
+                            zoomTree.append('circle')
+                                    .attr('cx', x0)
+                                    .attr('cy', y0)
+                                    .attr('r', 3)
+                                    .attr('class', zClass);
+                                zoomTree.append('circle')
+                                    .attr('cx', x1)
+                                    .attr('cy', y1)
+                                    .attr('r', 3)
+                                    .attr('class', zClass);
+                                zoomTree.append('path')
+                                    .attr('d', 
+                                        'M' + x0 + ',' + y0 + 
+                                        'C' + (x0+100) + ',' + (y0 + (y1>y0?-80:80))  +
+                                        ' ' + (x1-100) + ',' + (y1 + (y1>y0?80:-80)) +
+                                        ' ' + x1 + ',' + y1) 
+                                    .attr('class', zClass);
+
+                            });
                         }
                     }
                 );
             }
         });
+    },
+
+    _schedulingError: function(a, b) {
+        return (a.data.record.get('PlannedEndDate') > b.data.record.get('PlannedStartDate')) ;
     },
 
     _getSuccessors: function(record) {
@@ -356,7 +403,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     deferred.reject();
                 }
             }
-        }
+        };
         record.getCollection('Successors').load(config);
         return deferred.promise;
     },
@@ -969,8 +1016,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 }
             });
         return returnNode;
-
     },
+
     _findParentType: function(record) {
         //The only source of truth for the hierachy of types is the typeStore using 'Ordinal'
         var ord = null;
@@ -1052,15 +1099,23 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         return model;
     },
 
+    _getNodeTreeId: function(d) {
+        return d.id;
+    },
+
+    _getNodeTreeRecordId: function(record) {
+        return record.data._ref;
+    },
+
     _stratifyNodeTree: function(nodes) {
         return d3.stratify()
         .id( function(d) {
-            var retval = (d.record && d.record.data._ref) || null; //No record is an error in the code, try to barf somewhere if that is the case
+            var retval = (d.record && gApp._getNodeTreeRecordId(d.record)) || null; //No record is an error in the code, try to barf somewhere if that is the case
             return retval;
         })
         .parentId( function(d) {
             var pParent = gApp._findParentNode(nodes, d);
-            return (pParent && pParent.record && pParent.record.data._ref); })
+            return (pParent && pParent.record && gApp._getNodeTreeRecordId(pParent.record)); })
         (nodes);
     },
 
@@ -1070,6 +1125,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         nodetree.sum(function(d) { return 1;});        // Set the dimensions in svg to match
         gApp._nodeTree = nodetree;      //Save for later
         return nodetree;
+    },
+
+    _findTreeNode: function(id) {
+        var retval = null;
+        gApp._nodeTree.each( function(d) {
+            if (gApp._getNodeTreeId(d) === id) {
+                retval = d;
+            }
+        });
+        return retval;
     },
 
     _addSVGTree: function() {
@@ -1095,11 +1160,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     redrawNodeTree: function() {
         gApp._removeSVGTree();
         gApp._enterMainApp();
-    },
-
-    _getNodeId: function(d){
-        if (d.data.record.data._ref === 'root') { return Ext.id();}
-        return d.data.record? d.data.record.get('FormattedID'): Ext.id();
     },
 
     launch: function() {

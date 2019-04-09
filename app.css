@@ -54,11 +54,27 @@
 }
 .data--errors  {
   stroke: #f00;
-  stroke-width: 3px;
+  stroke-width: 1px;
+}
+
+path.data--errors {
+  fill: none;
+}
+
+circle.data--errors {
+  fill: #f00;
 }
 .no--errors {
   stroke: #111;
-  stroke-width: 2px;
+  stroke-width: 1px;
+}
+
+path.no--errors {
+  fill: none;
+}
+
+circle.no--errors {
+  fill: #000;
 }
 .no--errors--not--started {
   fill: #00ffff;
