@@ -310,25 +310,32 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 .attr('y', gApp.MIN_ROW_HEIGHT - 3)
                 .attr('class', 'node boldText');
 
-            var arrow = d.t.append('polygon')
-                    .attr('class','up-arrow')
+            if (d.children) {
+                d.t.append('polygon')
+                    .attr('class','tree-arrow')
                     .attr('id', 'uparrow'+d.data.Name)
                     .attr('width', 10)
                     .attr('height', 10)
-                    .attr('transform', 'translate(0,5)');
-            if (d.children) {
-                arrow.attr('points', "5,0 10,10 0,10");
+                    .attr('transform', 'translate(0,5)')
+                    .attr('points', "5,0 10,10 0,10");
             }
             if (d._children) {
-                arrow.attr('points', "0,0 10,0 5,10");
+                d.t.append('polygon')
+                    .attr('class','tree-arrow')
+                    .attr('id', 'uparrow'+d.data.Name)
+                    .attr('width', 10)
+                    .attr('height', 10)
+                    .attr('transform', 'translate(0,5)')
+                    .attr('points', "0,0 10,0 5,10");
             }
 
-            d.t.append('rect')
-                .attr('class', 'arrowbox')
-                .attr('width', gApp.MIN_ROW_HEIGHT)
-                .attr('height', gApp.MIN_ROW_HEIGHT)
-                .on('click', function() { gApp._switchChildren(d);});
-
+            if (d.children || d._children) {
+                d.t.append('rect')
+                    .attr('class', 'arrowbox')
+                    .attr('width', gApp.MIN_ROW_HEIGHT)
+                    .attr('height', gApp.MIN_ROW_HEIGHT)
+                    .on('click', function() { gApp._switchChildren(d);});
+            }
             //Now add the dependencies lines
             var deps = d.data.record.get('Successors');
             if (deps && deps.Count) {

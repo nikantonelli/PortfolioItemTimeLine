@@ -1,7 +1,12 @@
 
-.up-arrow {
+.tree-arrow {
   fill: grey;
 }
+
+.tree-arrow:hover {
+  fill: palegreen;
+}
+
 .down-arrow {
   fill: pink;
 }
