@@ -1,0 +1,16 @@
+{
+    "name": "My Portfolio Item Tree",
+    "className": "Nik.apps.PortfolioItemTimeline.app",
+    "server": "https://rally1.rallydev.com",
+    "sdk": "2.1",
+    "javascript": [
+        "App.js",
+        "DateMixin.js",
+        "CFDChart.js",
+        "CFDCalc.js",
+        "d3.js"
+    ],
+    "css": [
+        "app.css"
+    ]
+}

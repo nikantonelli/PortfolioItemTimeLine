@@ -1,0 +1,186 @@
+
+.up-arrow {
+  fill: grey;
+}
+.down-arrow {
+  fill: pink;
+}
+.left-arrow {
+  fill: white;
+}
+
+.arrowbox {
+  fill: transparent;
+}
+
+.node text {
+  font: 14px sans-serif;
+}
+
+.info--box text {
+    font-size: 14px;
+    font-family: "ProximaNovaSemiBold,Helvetica,Arial"
+}
+.node--internal text {
+  text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
+}
+.local--link {
+  fill: none;
+  stroke: #111;
+  stroke-opacity: 0.4;
+  stroke-width: 1.5px;
+}
+.remote--link {
+  fill: none;
+  stroke: #ddd;
+  stroke-opacity: 0.4;
+  stroke-width: 1.5px;
+}
+.invisible--link {
+  fill: none;
+  stroke: #ddd;
+  stroke-opacity: 0.0;
+  stroke-width: 1.5px;
+}
+
+.predecessor--link {
+  fill: dashed;
+  stroke: lightblue;
+  stroke-opacity: 0.5;
+  stroke-width: 3px;
+}
+.error--node  {
+  fill: rgb(0, 0, 0);
+}
+.data--errors  {
+  stroke: #f00;
+  stroke-width: 3px;
+}
+.no--errors {
+  stroke: #111;
+  stroke-width: 2px;
+}
+.no--errors--not--started {
+  fill: #00ffff;
+  stroke: #111;
+  stroke-width: 2px;
+}
+.no--errors--in--progress {
+  fill: #0f0;
+  stroke: #00f;
+  stroke-width: 2px;
+}
+
+.dotOutline {
+  stroke: #000;
+  stroke-width: 2px;
+}
+
+.gotDependencies {
+  stroke: #f00;
+  stroke-width: 2px;
+  fill: #ff0000;
+}
+
+.gotSuccText {
+  fill: #888800;
+}
+.gotPredText {
+  fill: #ff0000;
+}
+
+.boldText {
+  font-weight: bold;
+}
+
+.RAID-blue {
+  border-radius: 10px;
+  border: 2px solid black;
+  height: 20px;
+  width: 20px;
+  background-color: #145FAC;
+}
+
+.RAID-red {
+  border-radius: 10px;
+  border: 2px solid black;
+  height: 20px;
+  width: 20px;
+  background-color: #ff005c;
+}
+
+.RAID-amber {
+  border-radius: 10px;
+  border: 2px solid black;
+  background-color: #f3ca5e;
+  height: 20px;
+  width: 20px;
+}
+
+.RAID-green {
+  border-radius: 10px;
+  border: 2px solid black;
+  height: 20px;
+  width: 20px;
+  background: #b3ee01;
+}
+
+.q0-3{fill:rgb(252,141,89)}  .q1-3{fill:rgb(255,255,191)}  .q2-3{fill:rgb(145,191,219)}
+ .q0-4{fill:rgb(215,25,28)}  .q1-4{fill:rgb(253,174,97)}  .q2-4{fill:rgb(171,217,233)}  .q3-4{fill:rgb(44,123,182)}
+ .q0-5{fill:rgb(215,25,28)}  .q1-5{fill:rgb(253,174,97)}  .q2-5{fill:rgb(255,255,191)}  .q3-5{fill:rgb(171,217,233)}  .q4-5{fill:rgb(44,123,182)}
+ .q0-6{fill:rgb(215,48,39)}  .q1-6{fill:rgb(252,141,89)}  .q2-6{fill:rgb(254,224,144)}  .q3-6{fill:rgb(224,243,248)}  .q4-6{fill:rgb(145,191,219)}  .q5-6{fill:rgb(69,117,180)}
+ .q0-7{fill:rgb(215,48,39)}  .q1-7{fill:rgb(252,141,89)}  .q2-7{fill:rgb(254,224,144)}  .q3-7{fill:rgb(255,255,191)}  .q4-7{fill:rgb(224,243,248)}  .q5-7{fill:rgb(145,191,219)}  .q6-7{fill:rgb(69,117,180)}
+ .q0-8{fill:rgb(215,48,39)}  .q1-8{fill:rgb(244,109,67)}  .q2-8{fill:rgb(253,174,97)}  .q3-8{fill:rgb(254,224,144)}  .q4-8{fill:rgb(224,243,248)}  .q5-8{fill:rgb(171,217,233)}  .q6-8{fill:rgb(116,173,209)}  .q7-8{fill:rgb(69,117,180)}
+ .q0-9{fill:rgb(215,48,39)}  .q1-9{fill:rgb(244,109,67)}  .q2-9{fill:rgb(253,174,97)}  .q3-9{fill:rgb(254,224,144)}  .q4-9{fill:rgb(255,255,191)}  .q5-9{fill:rgb(224,243,248)}  .q6-9{fill:rgb(171,217,233)}  .q7-9{fill:rgb(116,173,209)}  .q8-9{fill:rgb(69,117,180)}
+
+ @keyframes textBlink {
+  50% {
+    opacity: 0.5;
+  }
+}
+@-webkit-keyframes textBlink {
+  50% {
+    opacity: 0.5;
+  }
+}
+.textBlink {
+  animation: textBlink 1s step-start 0s infinite;
+  -webkit-animation: textBlink 1s step-start 0s infinite;
+}
+
+.RAID-missing-severity {
+  border-radius: 10px;
+  border: 2px solid red;
+  height: 20px;
+  width: 20px;
+  background-color: white;
+  background: linear-gradient(#ffffff 50%, #ff0000 50%);
+  background-size: 20% 100%;
+  background-repeat: repeat-x;
+}
+.RAID-missing-probability {
+  border-radius: 10px;
+  border: 2px solid red;
+  height: 20px;
+  width: 20px;
+  background-color: white;
+  background: linear-gradient(#ff0000 50%, #ffffff 50%);
+  background-size: 20% 100%;
+  background-repeat: repeat-x;
+}
+.RAID-missing-severity-probability {
+  border-radius: 10px;
+  border: 2px solid red;
+  height: 20px;
+  width: 20px;
+  background-color: white;
+}
+
+.axis path {
+  display: none;
+}
+
+.axis line {
+  stroke-opacity: 0.3;
+  shape-rendering: crispEdges;
+}

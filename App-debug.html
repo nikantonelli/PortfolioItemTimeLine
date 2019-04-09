@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Portfolio Item Tree</title>
+
+
+    <script type="text/javascript" src="https://rally1.rallydev.com/apps/2.1/sdk-debug.js"></script>
+
+    <script type="text/javascript">
+        Rally.loadScripts(
+                [
+                      "App.js",
+                      "DateMixin.js",
+                      "CFDChart.js",
+                      "CFDCalc.js",
+                      "d3.js",
+                ],
+        function() {
+            Rally.launchApp('Nik.apps.PortfolioItemTimeline.app', {
+                name:"My Portfolio Item Tree",
+                parentRepos:"",
+                version:"0.1.1"
+            });
+        }, true);
+    </script>
+
+
+    <link rel="stylesheet" type="text/css" href="app.css"/>
+</head>
+<body>
+</body>
+</html>
