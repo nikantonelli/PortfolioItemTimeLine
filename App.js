@@ -14,7 +14,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             showFilter: true,
             allowMultiSelect: false,
             onlyDependencies: true,
-            featuresOnly: true
+            oneTypeOnly: false
         }
     },
 
@@ -61,8 +61,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         },
         {
             xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show lowest item only',
-            name: 'featuresOnly',
+            fieldLabel: 'Show one type only',
+            name: 'oneTypeOnly',
             labelAlign: 'top'
         }
         ];
@@ -909,34 +909,27 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp.timeboxScope = gApp.getContext().getTimeboxScope(); 
         //Add any useful selectors into this container ( which is inserted before the rootSurface )
         //Choose a point when all are 'ready' to jump off into the rest of the app
-        var hdrBoxConfig = {
-            xtype: 'container',
-            itemId: 'headerBox',
-            layout: 'hbox',
-            items: [
-                
-                {
-                    xtype:  'rallyportfolioitemtypecombobox',
-                    itemId: 'piType',
-                    fieldLabel: 'Choose Portfolio Type :',
-                    labelWidth: 100,
-                    margin: '5 0 5 20',
-                    defaultSelectionPosition: 'first',
-//                    storeConfig: {
-//                        sorters: {
-//                            property: 'Ordinal',
-//                            direction: 'ASC'
-//                        }
-//                    },
-                    listeners: {
-                        select: function() { gApp._kickOff();},    //Jump off here to add portfolio size selector
-                    }
-                },
-            ]
-        };
-        
-        var hdrBox = this.insert (0,hdrBoxConfig);
-        
+            var hdrBoxConfig = {
+                xtype: 'container',
+                itemId: 'headerBox',
+                layout: 'hbox',
+                items: [
+                    
+                    {
+                        xtype:  'rallyportfolioitemtypecombobox',
+                        itemId: 'piType',
+                        fieldLabel: 'Choose Portfolio Type :',
+                        labelWidth: 100,
+                        margin: '5 0 5 20',
+                        defaultSelectionPosition: 'first',
+                        listeners: {
+                            select: function() { gApp._kickOff();},    //Jump off here to add portfolio size selector
+                        }
+                    },
+                ]
+            };
+            
+            this.insert (0,hdrBoxConfig);        
     },
 
     _nodes: [],
@@ -970,57 +963,56 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var ptype = gApp.down('#piType');
         var hdrBox = gApp.down('#headerBox');
         gApp._typeStore = ptype.store;
-        var selector = gApp.down('#itemSelector');
-        if ( selector) {
-            selector.destroy();
-        }
-        var is = hdrBox.insert(2,{
-            xtype: 'rallyartifactsearchcombobox',
-            fieldLabel: 'Choose Start Item :',
-            itemId: 'itemSelector',
-            multiSelect: gApp.getSetting('allowMultiSelect'),
-            labelWidth: 100,
-            queryMode: 'remote',
-            allowNoEntry: false,
-            pageSize: 200,
-            width: 600,
-            margin: '10 0 5 20',
-            stateful: true,
-            stateId: this.getContext().getScopedStateId('itemSelector'),
-            storeConfig: {
-                models: [ 'portfolioitem/' + ptype.rawValue ],
-                fetch: gApp.STORE_FETCH_FIELD_LIST,
-                context: gApp.getContext().getDataContext(),
-                pageSize: 200,
-                autoLoad: true
-            },
-            listeners: {
-                // select: function(selector,records) {
-                //     this.startAgain(selector,this.valueModels);
-                // },
-                change: function(selector,records) {
-                    if (records.length > 0) {
-                        gApp._resetTimer(this.startAgain);
-                    }
-                }
-            },
-            startAgain: function () {
-                var records = gApp.down('#itemSelector').valueModels;
-                if ( gApp._nodes) gApp._nodes = [];
-                if (records.length > 1) {
-                        gApp._nodes.push({'Name': 'Combined View',
-                        'record': {
-                            'data': {
-                                '_ref': 'root',
-                                'Name': ''
-                            }
-                        },
-                        'local':true
-                    });
-                }
-                gApp._getArtifacts(records);
+        if (!gApp.getSetting('oneTypeOnly')){
+            var selector = gApp.down('#itemSelector');
+            if ( selector) {
+                selector.destroy();
             }
-        });   
+            var is = hdrBox.insert(2,{
+                xtype: 'rallyartifactsearchcombobox',
+                fieldLabel: 'Choose Start Item :',
+                itemId: 'itemSelector',
+                multiSelect: gApp.getSetting('allowMultiSelect'),
+                labelWidth: 100,
+                queryMode: 'remote',
+                allowNoEntry: false,
+                pageSize: 200,
+                width: 600,
+                margin: '10 0 5 20',
+                stateful: true,
+                stateId: this.getContext().getScopedStateId('itemSelector'),
+                storeConfig: {
+                    models: [ 'portfolioitem/' + ptype.rawValue ],
+                    fetch: gApp.STORE_FETCH_FIELD_LIST,
+                    context: gApp.getContext().getDataContext(),
+                    pageSize: 200,
+                    autoLoad: true
+                },
+                listeners: {
+                    change: function(selector,records) {
+                        if (records.length > 0) {
+                            gApp._resetTimer(this.startAgain);
+                        }
+                    }
+                },
+                startAgain: function () {
+                    var records = gApp.down('#itemSelector').valueModels;
+                    if ( gApp._nodes) gApp._nodes = [];
+                    if (records.length > 1) {
+                            gApp._nodes.push({'Name': 'Combined View',
+                            'record': {
+                                'data': {
+                                    '_ref': 'root',
+                                    'Name': ''
+                                }
+                            },
+                            'local':true
+                        });
+                    }
+                    gApp._getArtifacts(records);
+                }
+            })
+        }   
 
 //        Ext.util.Observable.capture( is, function(event) { console.log('event', event, arguments);});
         if(gApp.getSetting('showFilter') && !gApp.down('#inlineFilter')){
@@ -1051,8 +1043,64 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 }
             });
         }
+        if (gApp.getSetting('oneTypeOnly')){
+            //Get the records you can see of the type set in the piType selector
+            //and call _getArtifacts with them.
+            var lowest = gApp._getSelectedOrdinal() === 0;
+            var fetchConfig = gApp._fetchConfig(lowest)
+            fetchConfig.model = gApp._getSelectedType();
+            fetchConfig.autoLoad = true;
+            Ext.create ('Rally.data.wsapi.s')
+
+        }
     },
 
+    _fetchConfig: function(lowest){
+        var collectionConfig = {
+            sorters: [
+                {
+                    property: 'DragAndDropRank',
+                    direction: 'ASC'
+                }
+            ],
+            fetch: gApp.STORE_FETCH_FIELD_LIST,
+            callback: function(records, operation, success) {
+                //Start the recursive trawl down through the levels
+                if (success && records.length)  gApp._getArtifacts(records);
+            },
+            filters: []
+        };
+        if (gApp.getSetting('hideArchived')) {
+            collectionConfig.filters.push({
+                property: 'Archived',
+                operator: '=',
+                value: false
+            });
+        }
+
+        if (lowest) { //Only for lowest level item type)
+            if(gApp.getSetting('showFilter') && gApp.advFilters && gApp.advFilters.length > 0){
+                Ext.Array.each(gApp.advFilters,function(filter){
+                    collectionConfig.filters.push(filter);
+                });
+            }
+
+            if ( gApp.getSetting('onlyDependencies') === true){
+                collectionConfig.filters.push(Rally.data.wsapi.Filter.or([
+                    { property: 'Predecessors.ObjectID', operator: '!=', value: null },
+                    { property: 'Successors.ObjectID', operator: '!=', value: null }
+                ]));
+            }
+            //Can only do releases and milestones, not interations
+            if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') ||
+            (gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'milestone') 
+            )
+            {
+                collectionConfig.filters.push(gApp.timeboxScope.getQueryFilter());
+            }
+        }
+        return collectionConfig;
+    },
 
     _getArtifacts: function(data) {
         //On re-entry send an event to redraw
@@ -1062,50 +1110,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         //Starting with highest selected by the combobox, go down
 
         _.each(data, function(record) {
+            var lowest = record.get('PortfolioItemType').Ordinal < 2;
             if (record.get('Children')){                                //Limit this to feature level and not beyond.
-                var collectionConfig = {
-                    sorters: [
-                        {
-                            property: 'DragAndDropRank',
-                            direction: 'ASC'
-                        }
-                    ],
-                    fetch: gApp.STORE_FETCH_FIELD_LIST,
-                    callback: function(records, operation, success) {
-                        //Start the recursive trawl down through the levels
-                        if (success && records.length)  gApp._getArtifacts(records);
-                    },
-                    filters: []
-                };
-                if (gApp.getSetting('hideArchived')) {
-                    collectionConfig.filters.push({
-                        property: 'Archived',
-                        operator: '=',
-                        value: false
-                    });
-                }
-
-                if (record.get('PortfolioItemType').Ordinal < 2) { //Only for lowest level item type)
-                    if(gApp.getSetting('showFilter') && gApp.advFilters && gApp.advFilters.length > 0){
-                        Ext.Array.each(gApp.advFilters,function(filter){
-                            collectionConfig.filters.push(filter);
-                        });
-                    }
-
-                    if ( gApp.getSetting('onlyDependencies') === true){
-                        collectionConfig.filters.push(Rally.data.wsapi.Filter.or([
-                            { property: 'Predecessors.ObjectID', operator: '!=', value: null },
-                            { property: 'Successors.ObjectID', operator: '!=', value: null }
-                        ]));
-                    }
-                    //Can only do releases and milestones, not interations
-                    if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') ||
-                    (gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'milestone') 
-                    )
-                    {
-                        collectionConfig.filters.push(gApp.timeboxScope.getQueryFilter());
-                    }
-                }
+                var collectionConfig = gApp._fetchConfig(lowest);
                 record.getCollection( 'Children').load( collectionConfig );
             }
         });
@@ -1182,8 +1189,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _getSelectedOrdinal: function() {
         return gApp.down('#piType').lastSelection[0].get('Ordinal');
     },
+    
+    _getSelectedType: function() {
+        return gApp.down('#piType').lastSelection[0].get('Type');
+    },
 
-     _getTypeList: function(highestOrdinal) {
+    _getTypeList: function(highestOrdinal) {
         var piModels = [];
         _.each(gApp._typeStore.data.items, function(type) {
             //Only push types below that selected
