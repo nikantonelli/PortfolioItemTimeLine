@@ -368,6 +368,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     .attr('height', gApp.MIN_ROW_HEIGHT)
                     .on('click', function() { gApp._switchChildren(d);});
             }
+        });
+        nodetree.each(function(d) {
             //Now add the dependencies lines
             var deps = d.data.record.get('Successors');
             if (deps && deps.Count) {
@@ -395,15 +397,18 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                 else {
                                     zClass += 'no--errors';
                                 }
-                            zoomTree.append('circle')
+                                zoomTree.append('circle')
                                     .attr('cx', x0)
                                     .attr('cy', y0)
                                     .attr('r', 3)
+                                    .on('mouseover', function(a, idx, arr) {    //'a' refers to the wrong thing!
+                                        gApp._createDepsPopover(d, arr[idx], false);})    //Default to successors
                                     .attr('class', zClass);
                                 zoomTree.append('circle')
                                     .attr('cx', x1)
                                     .attr('cy', y1)
                                     .attr('r', 3)
+                                    .on('mouseover', function(a, idx, arr) { gApp._createDepsPopover(e, arr[idx], false);})    //Default to successors
                                     .attr('class', zClass);
                                 zoomTree.append('path')
                                     .attr('d', 
@@ -421,10 +426,39 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         });
     },
 
+    _createDepsPopover: function(node, circ, tabOverride) {
+        //Create a zero size container right where the blob is and attach the 
+        //popover to that
+        var panel = Ext.create('Rally.ui.popover.DependenciesPopover',
+            {
+                record: node.data.record,
+                target: circ,
+                autoShow: false,
+                showChevron: false,
+                listeners: {
+                    show: function() {
+                        var activeTab = (node.data.record.get('PredecessorsAndSuccessors').Predecessors === 0) &&
+                                        (node.data.record.get('PredecessorsAndSuccessors').Successors > 0);
+
+                        panel._getTabPanel().setActiveTab((tabOverride !== undefined)?tabOverride:(activeTab?1:0));
+                        console.log( 'setting topleft: ',
+                                            circ.getBBox().x + circ.getBBox().width + gApp.LEFT_MARGIN_SIZE, 
+                                            circ.getBBox().y + (gApp.MIN_ROW_HEIGHT/2)
+                        );
+                        panel.el.setLeftTop (    parseInt(circ.getBBox().x + circ.getBBox().width + gApp.LEFT_MARGIN_SIZE), 
+                                                parseInt(circ.getBBox().y + (gApp.MIN_ROW_HEIGHT/2))
+                        );
+                    }
+                }
+            }
+        );         
+        panel.show();
+    },
+    
     _scheduleError: function(d) {
         if ( !d.parent ) { return false; }  //Top level item doesn't have a parent
-        return ( d.data.record.get('PlannedEndDate') > d.parent.data.record.get('PlannedEndDate'))
-            || ( d.data.record.get('PlannedStartDate') < d.parent.data.record.get('PlannedStartDate'))
+        return ( d.data.record.get('PlannedEndDate') > d.parent.data.record.get('PlannedEndDate')) ||
+             ( d.data.record.get('PlannedStartDate') < d.parent.data.record.get('PlannedStartDate'));
     },
 
     _sequenceError: function(a, b) {
