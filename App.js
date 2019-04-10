@@ -255,28 +255,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         });
     },
 
-    _defineText: function(d, boundingBox) {
-        var svgBox = boundingBox.node().getBBox();
-        var svgNode = d.g.node();
-        var text =document.createElementNS("http://www.w3.org/2000/svg", 'text');
-        var clip = document.createElementNS("http://www.w3.org/2000/svg", 'clipPath');
-        clip.setAttribute('id', 'textClip-'+d.data.Name);
-        var clipBox = document.createElementNS("http://www.w3.org/2000/svg", 'rect');
-        debugger;
-        clipBox.setAttribute('width', svgBox.width );
-        clipBox.setAttribute('height', svgBox.height );
-        clip.appendChild(clipBox);
-        svgNode.appendChild(clip);
-        this.svg.setAttribute('clip-path', 'url(#textClip'+d.data.Name+')');
-        text.setAttribute('id', 'gridText');
-        text.setAttribute('class', 'svgTextBox');
-        text.setAttribute('editable', this.editable === true ? 'simple' : 'none');
-        text.setAttribute('x', this.x + 10 + 2);    //Move text in a bit
-        text.setAttribute('y', this.y + 20 + 2);    //CSS specifies a 2px border
-        text.textContent = this.text;
-        retur
-    },
-
     _refreshTree: function(){
         var svgHeight = parseInt(d3.select('svg').attr('height'));
         var svgWidth = parseInt(d3.select('svg').attr('width')) - gApp.LEFT_MARGIN_SIZE;
@@ -292,17 +270,18 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         //Let's scale to the dateline
         nodetree.eachBefore(function(d) {
             //Come here before we visit the children to set up our 'g' spot
+            var shiftY = ((d.rpos * svgHeight) + 
+                            (d.parent?gApp.MIN_ROW_HEIGHT:0)) ;
             if ( !d.parent ) {
-                d.g = d3.select('#zoomTree').append('g')
-                    .attr('transform', 'translate(0,' + (gApp.getSetting('showTimeLine')?gApp.MIN_ROW_HEIGHT:0) + ')');
-                d.t = d3.select('#staticTree').append('g')
-                    .attr('transform', 'translate(0,' + (gApp.getSetting('showTimeLine')?gApp.MIN_ROW_HEIGHT:0) + ')');
+                d.g = d3.select('#zoomTree').append('g');
+                d.t = d3.select('#staticTree').append('g');
+                shiftY += (gApp.getSetting('showTimeLine')?gApp.MIN_ROW_HEIGHT:0);
             }
             else {
                 d.g = d.parent.g.append('g');
                 d.t = d.parent.t.append('g');
             }
-            var shiftY = ((d.rpos * svgHeight) + (d.parent?gApp.MIN_ROW_HEIGHT:0));
+
             var startX = gApp.dateScaler(new Date(d.data.record.get('PlannedStartDate')));
             var endX   = gApp.dateScaler(new Date(d.data.record.get('PlannedEndDate')));
             startX = startX<0? 0 : startX;
