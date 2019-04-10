@@ -356,7 +356,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     .attr('width', 10)
                     .attr('height', 10)
                     .attr('points', "10,0 0,5 10,10")
-                    .attr('transform', 'translate(' + gApp.LEFT_MARGIN_SIZE + ',5)');   //Overlay over start of zoombox
+                    .attr('transform', 'translate(' + (gApp.LEFT_MARGIN_SIZE+5) + ',5)');   //Overlay over start of zoombox
             }
             d.t.append('text')
                 .text(d.data.Name)
