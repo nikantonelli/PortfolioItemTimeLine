@@ -321,7 +321,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
                 //Add clipPath here
                 var cp = d.g.append('clipPath')
-                    .attr('id', 'clipPath-'+d.data.Name)
+                    .attr('id', 'clipPath-'+d.data.Name);
 
                 var clipBox =d.g.append('rect')
                     .attr('rx', gApp.MIN_ROW_HEIGHT/2)
