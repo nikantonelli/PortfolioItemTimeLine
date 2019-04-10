@@ -255,6 +255,28 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         });
     },
 
+    _defineText: function(d, boundingBox) {
+        var svgBox = boundingBox.node().getBBox();
+        var svgNode = d.g.node();
+        var text =document.createElementNS("http://www.w3.org/2000/svg", 'text');
+        var clip = document.createElementNS("http://www.w3.org/2000/svg", 'clipPath');
+        clip.setAttribute('id', 'textClip-'+d.data.Name);
+        var clipBox = document.createElementNS("http://www.w3.org/2000/svg", 'rect');
+        debugger;
+        clipBox.setAttribute('width', svgBox.width );
+        clipBox.setAttribute('height', svgBox.height );
+        clip.appendChild(clipBox);
+        svgNode.appendChild(clip);
+        this.svg.setAttribute('clip-path', 'url(#textClip'+d.data.Name+')');
+        text.setAttribute('id', 'gridText');
+        text.setAttribute('class', 'svgTextBox');
+        text.setAttribute('editable', this.editable === true ? 'simple' : 'none');
+        text.setAttribute('x', this.x + 10 + 2);    //Move text in a bit
+        text.setAttribute('y', this.y + 20 + 2);    //CSS specifies a 2px border
+        text.textContent = this.text;
+        retur
+    },
+
     _refreshTree: function(){
         var svgHeight = parseInt(d3.select('svg').attr('height'));
         var svgWidth = parseInt(d3.select('svg').attr('width')) - gApp.LEFT_MARGIN_SIZE;
@@ -317,7 +339,37 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     .attr('opacity', 0.5)
                     .attr('class', rClass)
                     .attr('id', 'rect-'+d.data.Name);
-            } 
+
+                //Add clipPath here
+                var cp = d.g.append('clipPath')
+                    .attr('id', 'clipPath-'+d.data.Name)
+
+                var clipBox =d.g.append('rect')
+                    .attr('rx', gApp.MIN_ROW_HEIGHT/2)
+                    .attr('ry', gApp.MIN_ROW_HEIGHT/2)
+                    .attr('x', startX)
+                    .attr('width', dWidth)
+                    .attr('height',gApp.MIN_ROW_HEIGHT);
+                    // .attr('fill', gApp.colours[d.depth+1])
+                    // .attr('opacity', 0.5)
+                    // .attr('class', rClass);
+
+                    //Reposition the clipBox as d3 doesn't seem to let me
+                    cp.node().appendChild(clipBox.node());
+                
+
+//                d.g.node().appendChild(clipBox.node());
+                d.g.append('text')
+                    .attr('clip-path', 'url(#clipPath-'+d.data.Name)
+                    .attr('id', 'text-'+d.data.Name)
+                    .attr('x', startX + gApp.MIN_ROW_HEIGHT)
+                    .attr('y', 15)  //Should follow point size of font
+                    .attr('class', 'normalText')
+                    .attr('editable', 'none')
+                    .text(d.data.record.get('Name'));
+
+
+                } 
             if (startX === 0 ) {
                 d.t.append('polygon')
                     .attr('class','left-arrow')
@@ -370,31 +422,43 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                             //Draw a circle on the end of the first one and make it flash if I can't find the end one
                             _.each(succs, function(succ) {
                                 var e = gApp._findTreeNode(gApp._getNodeTreeRecordId(succ));
-                                if (!e) { return;}
-                                var target = d3.select('#rect-'+e.data.Name);
+                                var zClass = '';
+                                var zoomTree = d3.select('#zoomTree');
+                                //Stuff without end point
                                 var source = d3.select('#rect-'+d.data.Name);
-                                //The x is easy from the boxes
                                 var x0 = source.node().getBBox().x + source.node().getBBox().width;
-                                var x1 = target.node().getBBox().x;
-                                //The y needs relative to the zoomTree element
                                 var y0 = source.node().getCTM().f  + (source.node().getBBox().height/2);
+
+                                if (!e) { 
+                                    zClass += 'textBlink';
+                                } else {
+                                    if (gApp._sequenceError( d, e)) {
+                                        zClass += (zClass.length?' ':'' + 'data--errors');
+                                    }
+                                    else {
+                                        zClass += (zClass.length?' ':'' + 'no--errors');
+                                    }    
+                                }
+
+                                if (zoomTree.select('#circle-'+d.data.Name).empty()) {
+                                    zoomTree.append('circle')
+                                        .attr('cx', x0)
+                                        .attr('cy', y0)
+                                        .attr('r', 3)
+                                        .attr('id', 'circle-'+d.data.Name)
+                                        .on('mouseover', function(a, idx, arr) {    //'a' refers to the wrong thing!
+                                            gApp._createDepsPopover(d, arr[idx], false);})    //Default to successors
+                                        .attr('class', zClass);
+                                }
+
+                                if (!e) {
+                                    return;
+                                }
+                                //Stuff that needs endpoint
+                                var target = d3.select('#rect-'+e.data.Name);
+                                var x1 = target.node().getBBox().x;
                                 var y1 = target.node().getCTM().f + (target.node().getBBox().height/2);
 
-                                var zoomTree = d3.select('#zoomTree');
-                                var zClass = '';
-                                if (gApp._sequenceError( d, e)) {
-                                    zClass += 'data--errors';
-                                }
-                                else {
-                                    zClass += 'no--errors';
-                                }
-                                zoomTree.append('circle')
-                                    .attr('cx', x0)
-                                    .attr('cy', y0)
-                                    .attr('r', 3)
-                                    .on('mouseover', function(a, idx, arr) {    //'a' refers to the wrong thing!
-                                        gApp._createDepsPopover(d, arr[idx], false);})    //Default to successors
-                                    .attr('class', zClass);
                                 zoomTree.append('circle')
                                     .attr('cx', x1)
                                     .attr('cy', y1)
