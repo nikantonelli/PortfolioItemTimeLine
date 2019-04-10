@@ -12,7 +12,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             showTimeLine: true,
             hideArchived: true,
             showFilter: true,
-            allowMultiSelect: false
+            allowMultiSelect: false,
+            onlyDependencies: true,
+            featuresOnly: true
         }
     },
 
@@ -49,6 +51,18 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             xtype: 'rallycheckboxfield',
             fieldLabel: 'Show Advanced filter',
             name: 'showFilter',
+            labelAlign: 'top'
+        },
+        {
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Show lowest item dependencies',
+            name: 'onlyDependencies',
+            labelAlign: 'top'
+        },
+        {
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Show lowest item only',
+            name: 'featuresOnly',
             labelAlign: 'top'
         }
         ];
@@ -285,15 +299,24 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
             //Add bit for dates
             if (dWidth) {
-            d.g.append('rect')
-                .attr('rx', gApp.MIN_ROW_HEIGHT/2)
-                .attr('ry', gApp.MIN_ROW_HEIGHT/2)
-                .attr('x', startX)
-                .attr('width', dWidth)
-                .attr('height',gApp.MIN_ROW_HEIGHT)
-                .attr('fill', gApp.colours[d.depth+1])
-                .attr('opacity', 0.5)
-                .attr('id', 'rect-'+d.data.Name);
+                var rClass = '';
+                if (gApp._scheduleError(d)) {
+                    rClass += 'data--errors';
+                }
+                else {
+                    rClass += 'no--errors';
+                }
+
+                d.g.append('rect')
+                    .attr('rx', gApp.MIN_ROW_HEIGHT/2)
+                    .attr('ry', gApp.MIN_ROW_HEIGHT/2)
+                    .attr('x', startX)
+                    .attr('width', dWidth)
+                    .attr('height',gApp.MIN_ROW_HEIGHT)
+                    .attr('fill', gApp.colours[d.depth+1])
+                    .attr('opacity', 0.5)
+                    .attr('class', rClass)
+                    .attr('id', 'rect-'+d.data.Name);
             } 
             if (startX === 0 ) {
                 d.t.append('polygon')
@@ -331,7 +354,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
             if (d.children || d._children) {
                 d.t.append('rect')
-                    .attr('class', 'arrowbox')
+                    .attr('class', 'clickable arrowbox')
                     .attr('width', gApp.MIN_ROW_HEIGHT)
                     .attr('height', gApp.MIN_ROW_HEIGHT)
                     .on('click', function() { gApp._switchChildren(d);});
@@ -357,7 +380,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
                                 var zoomTree = d3.select('#zoomTree');
                                 var zClass = '';
-                                if (gApp._schedulingError( d, e)) {
+                                if (gApp._sequenceError( d, e)) {
                                     zClass += 'data--errors';
                                 }
                                 else {
@@ -389,7 +412,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         });
     },
 
-    _schedulingError: function(a, b) {
+    _scheduleError: function(d) {
+        if ( !d.parent ) { return false; }  //Top level item doesn't have a parent
+        return ( d.data.record.get('PlannedEndDate') > d.parent.data.record.get('PlannedEndDate'))
+            || ( d.data.record.get('PlannedStartDate') < d.parent.data.record.get('PlannedStartDate'))
+    },
+
+    _sequenceError: function(a, b) {
         return (a.data.record.get('PlannedEndDate') > b.data.record.get('PlannedStartDate')) ;
     },
 
@@ -986,6 +1015,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                         });
                     }
 
+                    if ( gApp.getSetting('onlyDependencies') === true){
+                        collectionConfig.filters.push(Rally.data.wsapi.Filter.or([
+                            { property: 'Predecessors.ObjectID', operator: '!=', value: null },
+                            { property: 'Successors.ObjectID', operator: '!=', value: null }
+                        ]));
+                    }
                     //Can only do releases and milestones, not interations
                     if((gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'release') ||
                     (gApp.timeboxScope && gApp.timeboxScope.type.toLowerCase() === 'milestone') 

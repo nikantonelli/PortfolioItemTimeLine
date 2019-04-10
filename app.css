@@ -69,6 +69,11 @@ path.data--errors {
 circle.data--errors {
   fill: #f00;
 }
+
+rect.data--errors {
+  stroke: #f00;
+  stroke-width: 1px;
+}
 .no--errors {
   stroke: #111;
   stroke-width: 1px;
@@ -76,6 +81,10 @@ circle.data--errors {
 
 path.no--errors {
   fill: none;
+}
+
+rect.no--errors {
+  stroke: none;
 }
 
 circle.no--errors {
