@@ -213,10 +213,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp._startTreeAgain();
     },
 
-    _scaleTimeLine: function() {
+    _initialiseScale: function() {
 
        var timebegin = new Date(gApp.getSetting('startDate')) || Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.tlBack);
        var timeend =  new Date(gApp.getSetting('endDate')) || Ext.Date.add(new Date(), Ext.Date.DAY, gApp.tlAfter);
+        gApp._setTimeScaler(timebegin,timeend);
+    },
+
+    _setTimeScaler: function(timebegin, timeend){
         gApp.dateScaler = d3.scaleTime()
             .domain([
                 timebegin, timeend
@@ -253,20 +257,33 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     },
 
-    _startTreeAgain: function()
-    {
+    _rescaledStart: function() {
+        console.log('rescaled start');
         gApp._removeSVGTree();
         gApp._addSVGTree();
-        gApp._scaleTimeLine();
         gApp._setZoomer();
         gApp._refreshTree();
-
     },
+    _startTreeAgain: function()
+    {
+        console.log('start again');
+        gApp._initialiseScale();
+        gApp._rescaledStart();
+    },
+
     _indexTree: function(nodetree) {
         nodetree.eachBefore(function(d) {
             d.rheight = d.x1 - d.x0;
             d.rpos = d.x0 - (d.parent?d.parent.x0:0); //Deal with root node
         });
+    },
+
+    _setTimeline: function(d) {
+        gApp._setTimeScaler(
+            new Date(d.data.record.get('PlannedStartDate')),
+            new Date(d.data.record.get('PlannedEndDate'))
+        );
+        gApp._rescaledStart();
     },
 
     _refreshTree: function(){
@@ -331,7 +348,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     .attr('fill', gApp.colours[d.depth+1])
                     .attr('opacity', 0.5)
                     .attr('class', rClass)
-                    .attr('id', 'rect-'+d.data.Name);
+                    .attr('id', 'rect-'+d.data.Name)
+                    .on('click', function(a, idx, arr) {
+                        gApp._setTimeline(d);
+                    });
 
                 //Add clipPath here
                 var cp = d.g.append('clipPath')
@@ -1028,7 +1048,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     }
                     gApp._getArtifacts(records);
                 }
-            })
+            });
         }   
 
 //        Ext.util.Observable.capture( is, function(event) { console.log('event', event, arguments);});
@@ -1064,10 +1084,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             //Get the records you can see of the type set in the piType selector
             //and call _getArtifacts with them.
             var lowest = gApp._getSelectedOrdinal() === 0;
-            var fetchConfig = gApp._fetchConfig(lowest)
+            var fetchConfig = gApp._fetchConfig(lowest);
             fetchConfig.model = gApp._getSelectedType();
             fetchConfig.autoLoad = true;
-            Ext.create ('Rally.data.wsapi.s')
+            //Ext.create ('Rally.data.wsapi.s')
 
         }
     },
@@ -1283,7 +1303,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var svg = d3.select('svg');
         svg.append("g")        
             .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",0)")
-            .attr("id","zoomTree");
+            .attr("id","zoomTree")
+            .append('rect')
+            .attr('width', +svg.attr('width'))
+            .attr('height', +svg.attr('height'))
+            .attr('class', 'arrowbox')
+            .on('click', gApp._startTreeAgain);
+
         svg.append("g")        
             .attr("transform","translate(0,0)")
             .attr('width', gApp.LEFT_MARGIN_SIZE)
