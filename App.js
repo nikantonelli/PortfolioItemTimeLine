@@ -13,7 +13,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             hideArchived: true,
             showFilter: true,
             allowMultiSelect: false,
-            onlyDependencies: true,
+            onlyDependencies: false,
             oneTypeOnly: false,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150)
@@ -385,14 +385,27 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 } 
             var atStart = false;
             if (startX === 0 ) {
-                atStart = true;
-                d.t.append('polygon')
-                    .attr('class','left-arrow')
-                    .attr('id', 'leftarrow'+d.data.Name)
-                    .attr('width', 10)
-                    .attr('height', 10)
-                    .attr('points', "10,0 0,5 10,10")
-                    .attr('transform', 'translate(' + (gApp.LEFT_MARGIN_SIZE+5) + ',5)');   //Overlay over start of zoombox
+                if ( 
+                    d.data.record.get('PlannedStartDate') &&
+                    d.data.record.get('PlannedEndDate')
+                ){
+                    d.t.append('polygon')
+                        .attr('class','left-arrow')
+                        .attr('id', 'leftarrow'+d.data.Name)
+                        .attr('width', 10)
+                        .attr('height', 10)
+                        .attr('points', "10,0 0,5 10,10")
+                        .attr('transform', 'translate(' + (gApp.LEFT_MARGIN_SIZE+5) + ',5)')   //Overlay over start of zoombox
+                        .on('click', function(a, idx, arr) {
+                            gApp._setTimeline(d);
+                        });
+                }
+                else {
+                    d.t.append('circle')
+                        .attr('class','data--errors')
+                        .attr('r', 5)
+                        .attr('transform', 'translate(' + (gApp.LEFT_MARGIN_SIZE+10) + ',' + gApp.MIN_ROW_HEIGHT/2 + ')');   //Overlay over start of zoombox
+                }
             }
             d.t.append('text')
                 .text(d.data.Name)
