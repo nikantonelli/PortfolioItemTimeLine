@@ -16,7 +16,7 @@ If you have a lot of features and only want to see those with dependencies, ther
 
 Hover over a dependency link dot and it will give you the dependency popover. Hover over the bar and it will give you a small details panel. If you then decide you want to look at an item in more detail, use the shift key and hold while you click on the bar. This will open a modal dialog panel for the item. From there, you can click on the blue hyperlink to get to the usual QDP and FDP panels.
 
-The dependencies are those that exist between the portfolio items. The user story dependencies are not considered in this app right now.
+The dependencies are those that exist between the portfolio items. The user story dependencies are not considered in this app right now. However, you can get to them via the datapanel just mentioned.
 
 The dependency lines can be shown for just the lowest level item (usually Features) or you can ask for all of them by an option in the app settings. If you ask for all of them, then the higher level portfolio item dependencies are shown by dashed lines. The dashes get bigger the higher up the portfolio hierarchy the items are. Feature dependencies remain as solid lines.
 
