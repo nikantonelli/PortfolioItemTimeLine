@@ -27,3 +27,5 @@ The left-pointing triangles to the left of the bars signify that there are items
 If the portfolio item does not have both the PlannedStart and PlannedEnd dates, then instead of a triangle, there will be a red circle.
 
 The up/down arrows to the far left of the screen will collapse/restore that portfolio item and it's corresponding children.
+
+Oh, and I shouldn't forget, if you think the text is too small, you can set a "line size" in the options which will increase the bar width and the font size!
