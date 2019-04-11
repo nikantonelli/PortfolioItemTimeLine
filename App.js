@@ -30,7 +30,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         {
             name: 'showTimeLine',
             xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show time line',
+            fieldLabel: 'Show dates at top',
             labelAlign: 'top'
         },
         {
@@ -248,7 +248,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp.xAxis = d3.axisBottom(gApp.dateScaler)
             .ticks(( (width -gApp.LEFT_MARGIN_SIZE)+ 2)/50)
             .tickSize(height)
-            .tickPadding(8 - height);
+            .tickPadding(gApp.getSetting('showTimeLine')? (8 - height):0);
         gApp.zoom = d3.zoom()
             .scaleExtent([1,40])
             .translateExtent([-100,-100], [90+width, 100+height])
@@ -403,7 +403,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     .attr('class', 'normalText')
                     .attr('editable', 'none')
                     .attr('alignment-baseline', 'central')
-                    .attr('style', 'font-size:' + (gApp._rowHeight-7))
+                    .attr('style', 'font-size:' + (gApp._rowHeight-8))
                     .text(d.data.record.get('Name'));
 
 
