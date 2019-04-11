@@ -403,7 +403,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     .attr('class', 'normalText')
                     .attr('editable', 'none')
                     .attr('alignment-baseline', 'central')
-                    .attr('style', 'font-size:' + (gApp._rowHeight/2))
+                    .attr('style', 'font-size:' + (gApp._rowHeight-7))
                     .text(d.data.record.get('Name'));
 
 
