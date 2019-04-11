@@ -268,7 +268,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
         var zoomBox = d3.select('#zoomTree');
  
-        zoomBox.attr("transform", d3.event.transform);
+//        zoomBox.attr("transform", d3.event.transform);
         gApp.gX.call(gApp.xAxis.scale(d3.event.transform.rescaleX(gApp.dateScaler)));
 
     },
