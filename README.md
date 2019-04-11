@@ -20,7 +20,7 @@ The dependencies are those that exist between the protfolio items. The user stor
 
 The dependency lines can be shown for just the lowest level item (usually Features) or you can ask for all of them by an option in the app settings. If you ask for all of them, then the higher level portfoli oitem dependencies are shown by dashed lines. The dashes get bigger the higher up the portfolio hierarchy the items are. Feature dependencies remain as solid lines.
 
-The dots and lines on the bars and between the bars are coloured when there is a discrepancy in the Planned dates compared with the items parent. I.g. the dates are outside the parent's ones.
+The dots and lines on the bars and between the bars are coloured when there is a discrepancy in the Planned dates compared with the items parent. E.g. the dates are outside the parent's ones.
 
 The left-pointing triangles to the left of the bars signify that there are items with dates that are before the start date of the view. Click on the triangle to zoom over to those dates (and click on the whitespace to go back).
 
