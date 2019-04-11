@@ -7,9 +7,6 @@
   fill: palegreen;
 }
 
-.down-arrow {
-  fill: pink;
-}
 .left-arrow {
   fill: goldenrod;
 }
@@ -18,42 +15,11 @@
   fill: transparent;
 }
 
-.node text {
-  font: 14px sans-serif;
-}
-
 .normalText {
     font-size: 1em;
     font-family: "sans-serif"
 }
-.node--internal text {
-  text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
-}
-.local--link {
-  fill: none;
-  stroke: #111;
-  stroke-opacity: 0.4;
-  stroke-width: 1.5px;
-}
-.remote--link {
-  fill: none;
-  stroke: #ddd;
-  stroke-opacity: 0.4;
-  stroke-width: 1.5px;
-}
-.invisible--link {
-  fill: none;
-  stroke: #ddd;
-  stroke-opacity: 0.0;
-  stroke-width: 1.5px;
-}
 
-.predecessor--link {
-  fill: dashed;
-  stroke: lightblue;
-  stroke-opacity: 0.5;
-  stroke-width: 3px;
-}
 .error--node  {
   fill: rgb(0, 0, 0);
 }
@@ -101,58 +67,13 @@ circle.no--errors {
   stroke-width: 2px;
 }
 
-.dotOutline {
-  stroke: #000;
-  stroke-width: 2px;
-}
-
-.gotDependencies {
-  stroke: #f00;
-  stroke-width: 2px;
-  fill: #ff0000;
-}
-
-.gotSuccText {
-  fill: #888800;
-}
-.gotPredText {
-  fill: #ff0000;
-}
-
 .boldText {
   font-weight: bold;
 }
 
-.RAID-blue {
-  border-radius: 10px;
-  border: 2px solid black;
-  height: 20px;
-  width: 20px;
-  background-color: #145FAC;
-}
-
-.RAID-red {
-  border-radius: 10px;
-  border: 2px solid black;
-  height: 20px;
-  width: 20px;
-  background-color: #ff005c;
-}
-
-.RAID-amber {
-  border-radius: 10px;
-  border: 2px solid black;
-  background-color: #f3ca5e;
-  height: 20px;
-  width: 20px;
-}
-
-.RAID-green {
-  border-radius: 10px;
-  border: 2px solid black;
-  height: 20px;
-  width: 20px;
-  background: #b3ee01;
+.chosenDate {
+  border: black solid 1px;
+  font-weight: bold;
 }
 
 .q0-3{fill:rgb(252,141,89)}  .q1-3{fill:rgb(255,255,191)}  .q2-3{fill:rgb(145,191,219)}
@@ -176,34 +97,6 @@ circle.no--errors {
 .textBlink {
   animation: textBlink 1s step-start 0s infinite;
   -webkit-animation: textBlink 1s step-start 0s infinite;
-}
-
-.RAID-missing-severity {
-  border-radius: 10px;
-  border: 2px solid red;
-  height: 20px;
-  width: 20px;
-  background-color: white;
-  background: linear-gradient(#ffffff 50%, #ff0000 50%);
-  background-size: 20% 100%;
-  background-repeat: repeat-x;
-}
-.RAID-missing-probability {
-  border-radius: 10px;
-  border: 2px solid red;
-  height: 20px;
-  width: 20px;
-  background-color: white;
-  background: linear-gradient(#ff0000 50%, #ffffff 50%);
-  background-size: 20% 100%;
-  background-repeat: repeat-x;
-}
-.RAID-missing-severity-probability {
-  border-radius: 10px;
-  border: 2px solid red;
-  height: 20px;
-  width: 20px;
-  background-color: white;
 }
 
 .axis path {

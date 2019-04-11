@@ -23,7 +23,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             showFilter: true,
             allowMultiSelect: false,
             onlyDependencies: true,
-            oneTypeOnly: false
+            oneTypeOnly: false,
+            startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
+            endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150)
         }
     },
 
@@ -73,7 +75,18 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             fieldLabel: 'Show one type only',
             name: 'oneTypeOnly',
             labelAlign: 'top'
-        }
+        },{
+            xtype: 'rallydatefield',
+            fieldLabel: 'Start Date',
+            name: 'startDate',
+            labelAlign: 'top'
+        },{
+            xtype: 'rallydatefield',
+            fieldLabel: 'End Date',
+            name: 'endDate',
+            labelAlign: 'top'
+        },
+        
         ];
         return returned;
     },
@@ -211,10 +224,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     _scaleTimeLine: function() {
 
+       var timebegin = new Date(gApp.getSetting('startDate')) || Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.tlBack);
+       var timeend =  new Date(gApp.getSetting('endDate')) || Ext.Date.add(new Date(), Ext.Date.DAY, gApp.tlAfter);
         gApp.dateScaler = d3.scaleTime()
             .domain([
-                Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.tlBack),
-                Ext.Date.add(new Date(), Ext.Date.DAY, gApp.tlAfter)
+                timebegin, timeend
             ])
             .range([0, parseInt(d3.select('svg').attr('width'))  - gApp.LEFT_MARGIN_SIZE]);
     },
@@ -224,7 +238,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var width = +svg.attr('width');
         var height = +svg.attr('height');
         gApp.xAxis = d3.axisBottom(gApp.dateScaler)
-            .ticks(( width + 2)/30)
+            .ticks(( (width -gApp.LEFT_MARGIN_SIZE)+ 2)/50)
             .tickSize(height)
             .tickPadding(8 - height);
         gApp.zoom = d3.zoom()
@@ -350,15 +364,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 d.g.append('text')
                     .attr('clip-path', 'url(#clipPath-'+d.data.Name)
                     .attr('id', 'text-'+d.data.Name)
-                    .attr('x', startX + gApp.MIN_ROW_HEIGHT)
-                    .attr('y', 15)  //Should follow point size of font
+                    .attr('x', startX + (startX?(gApp.MIN_ROW_HEIGHT/2):gApp.MIN_ROW_HEIGHT))
+                    .attr('y', gApp.MIN_ROW_HEIGHT-6)  //Should follow point size of font
                     .attr('class', 'normalText')
                     .attr('editable', 'none')
                     .text(d.data.record.get('Name'));
 
 
                 } 
+            var atStart = false;
             if (startX === 0 ) {
+                atStart = true;
                 d.t.append('polygon')
                     .attr('class','left-arrow')
                     .attr('id', 'leftarrow'+d.data.Name)
@@ -945,7 +961,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     onSettingsUpdate: function() {
         if ( gApp._nodes) gApp._nodes = [];
-        gApp._getArtifacts( gApp.down('#itemSelector').valueModels);
+        gApp._kickOff();
+        //gApp._getArtifacts( gApp.down('#itemSelector').valueModels);
     },
 
     onTimeboxScopeChange: function(newTimebox) {
@@ -977,7 +994,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             if ( selector) {
                 selector.destroy();
             }
-            var is = hdrBox.insert(2,{
+            var is = hdrBox.insert(1,{
                 xtype: 'rallyartifactsearchcombobox',
                 fieldLabel: 'Choose Start Item :',
                 itemId: 'itemSelector',
@@ -18285,48 +18302,15 @@ Object.defineProperty(exports, '__esModule', { value: true });
 .tree-arrow:hover {
   fill: palegreen;
 }
-.down-arrow {
-  fill: pink;
-}
 .left-arrow {
   fill: goldenrod;
 }
 .arrowbox {
   fill: transparent;
 }
-.node text {
-  font: 14px sans-serif;
-}
 .normalText {
   font-size: 1em;
   font-family: "sans-serif";
-}
-.node--internal text {
-  text-shadow: 0 1px 0 #ffffff, 0 -1px 0 #ffffff, 1px 0 0 #ffffff, -1px 0 0 #ffffff;
-}
-.local--link {
-  fill: none;
-  stroke: #111;
-  stroke-opacity: 0.4;
-  stroke-width: 1.5px;
-}
-.remote--link {
-  fill: none;
-  stroke: #ddd;
-  stroke-opacity: 0.4;
-  stroke-width: 1.5px;
-}
-.invisible--link {
-  fill: none;
-  stroke: #ddd;
-  stroke-opacity: 0.0;
-  stroke-width: 1.5px;
-}
-.predecessor--link {
-  fill: dashed;
-  stroke: lightblue;
-  stroke-opacity: 0.5;
-  stroke-width: 3px;
 }
 .error--node {
   fill: #000000;
@@ -18368,51 +18352,12 @@ circle.no--errors {
   stroke: #00f;
   stroke-width: 2px;
 }
-.dotOutline {
-  stroke: #000;
-  stroke-width: 2px;
-}
-.gotDependencies {
-  stroke: #f00;
-  stroke-width: 2px;
-  fill: #ff0000;
-}
-.gotSuccText {
-  fill: #888800;
-}
-.gotPredText {
-  fill: #ff0000;
-}
 .boldText {
   font-weight: bold;
 }
-.RAID-blue {
-  border-radius: 10px;
-  border: 2px solid black;
-  height: 20px;
-  width: 20px;
-  background-color: #145FAC;
-}
-.RAID-red {
-  border-radius: 10px;
-  border: 2px solid black;
-  height: 20px;
-  width: 20px;
-  background-color: #ff005c;
-}
-.RAID-amber {
-  border-radius: 10px;
-  border: 2px solid black;
-  background-color: #f3ca5e;
-  height: 20px;
-  width: 20px;
-}
-.RAID-green {
-  border-radius: 10px;
-  border: 2px solid black;
-  height: 20px;
-  width: 20px;
-  background: #b3ee01;
+.chosenDate {
+  border: black solid 1px;
+  font-weight: bold;
 }
 .q0-3 {
   fill: #fc8d59;
@@ -18553,33 +18498,6 @@ circle.no--errors {
 .textBlink {
   animation: textBlink 1s step-start 0s infinite;
   -webkit-animation: textBlink 1s step-start 0s infinite;
-}
-.RAID-missing-severity {
-  border-radius: 10px;
-  border: 2px solid red;
-  height: 20px;
-  width: 20px;
-  background-color: white;
-  background: linear-gradient(#ffffff 50%, #ff0000 50%);
-  background-size: 20% 100%;
-  background-repeat: repeat-x;
-}
-.RAID-missing-probability {
-  border-radius: 10px;
-  border: 2px solid red;
-  height: 20px;
-  width: 20px;
-  background-color: white;
-  background: linear-gradient(#ff0000 50%, #ffffff 50%);
-  background-size: 20% 100%;
-  background-repeat: repeat-x;
-}
-.RAID-missing-severity-probability {
-  border-radius: 10px;
-  border: 2px solid red;
-  height: 20px;
-  width: 20px;
-  background-color: white;
 }
 .axis path {
   display: none;

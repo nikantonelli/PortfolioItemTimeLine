@@ -14,7 +14,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             showFilter: true,
             allowMultiSelect: false,
             onlyDependencies: true,
-            oneTypeOnly: false
+            oneTypeOnly: false,
+            startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
+            endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150)
         }
     },
 
@@ -64,7 +66,18 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             fieldLabel: 'Show one type only',
             name: 'oneTypeOnly',
             labelAlign: 'top'
-        }
+        },{
+            xtype: 'rallydatefield',
+            fieldLabel: 'Start Date',
+            name: 'startDate',
+            labelAlign: 'top'
+        },{
+            xtype: 'rallydatefield',
+            fieldLabel: 'End Date',
+            name: 'endDate',
+            labelAlign: 'top'
+        },
+        
         ];
         return returned;
     },
@@ -202,10 +215,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     _scaleTimeLine: function() {
 
+       var timebegin = new Date(gApp.getSetting('startDate')) || Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.tlBack);
+       var timeend =  new Date(gApp.getSetting('endDate')) || Ext.Date.add(new Date(), Ext.Date.DAY, gApp.tlAfter);
         gApp.dateScaler = d3.scaleTime()
             .domain([
-                Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.tlBack),
-                Ext.Date.add(new Date(), Ext.Date.DAY, gApp.tlAfter)
+                timebegin, timeend
             ])
             .range([0, parseInt(d3.select('svg').attr('width'))  - gApp.LEFT_MARGIN_SIZE]);
     },
@@ -215,7 +229,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var width = +svg.attr('width');
         var height = +svg.attr('height');
         gApp.xAxis = d3.axisBottom(gApp.dateScaler)
-            .ticks(( width + 2)/30)
+            .ticks(( (width -gApp.LEFT_MARGIN_SIZE)+ 2)/50)
             .tickSize(height)
             .tickPadding(8 - height);
         gApp.zoom = d3.zoom()
@@ -341,15 +355,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 d.g.append('text')
                     .attr('clip-path', 'url(#clipPath-'+d.data.Name)
                     .attr('id', 'text-'+d.data.Name)
-                    .attr('x', startX + gApp.MIN_ROW_HEIGHT)
-                    .attr('y', 15)  //Should follow point size of font
+                    .attr('x', startX + (startX?(gApp.MIN_ROW_HEIGHT/2):gApp.MIN_ROW_HEIGHT))
+                    .attr('y', gApp.MIN_ROW_HEIGHT-6)  //Should follow point size of font
                     .attr('class', 'normalText')
                     .attr('editable', 'none')
                     .text(d.data.record.get('Name'));
 
 
                 } 
+            var atStart = false;
             if (startX === 0 ) {
+                atStart = true;
                 d.t.append('polygon')
                     .attr('class','left-arrow')
                     .attr('id', 'leftarrow'+d.data.Name)
@@ -936,7 +952,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     onSettingsUpdate: function() {
         if ( gApp._nodes) gApp._nodes = [];
-        gApp._getArtifacts( gApp.down('#itemSelector').valueModels);
+        gApp._kickOff();
+        //gApp._getArtifacts( gApp.down('#itemSelector').valueModels);
     },
 
     onTimeboxScopeChange: function(newTimebox) {
@@ -968,7 +985,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             if ( selector) {
                 selector.destroy();
             }
-            var is = hdrBox.insert(2,{
+            var is = hdrBox.insert(1,{
                 xtype: 'rallyartifactsearchcombobox',
                 fieldLabel: 'Choose Start Item :',
                 itemId: 'itemSelector',
