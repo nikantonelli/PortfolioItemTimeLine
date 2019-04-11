@@ -259,8 +259,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .tickSize(height)
             .tickPadding(gApp.getSetting('showTimeLine')? (8 - height):0);
         gApp.zoom = d3.zoom()
-            .scaleExtent([1,40])
-            .translateExtent([-100,-100], [90+width, 100+height])
+            // .scaleExtent([1,40])
+            // .translateExtent([-100,-100], [90+width, 100+height])
             .on("zoom",gApp._zoomed);
         var zoomBox = d3.select('#zoomTree');
         gApp.gX = zoomBox.append('g')
@@ -269,8 +269,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .attr("class", 'axis')
             .call(gApp.xAxis);    
             
-        d3.select('#zoomTree').call(gApp.zoom);
-    },
+            svg.call(gApp.zoom);
+//            d3.select('#zoomTree').call(gApp.zoom);
+        },
 
     _zoomed: function() {
 
