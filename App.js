@@ -16,7 +16,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             onlyDependencies: false,
             oneTypeOnly: false,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
-            endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150)
+            endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
+            lineSize: 20,
+            lowestDependencies: true
         }
     },
 
@@ -57,8 +59,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         },
         {
             xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show lowest item dependencies',
+            fieldLabel: 'Only items with dependencies',
             name: 'onlyDependencies',
+            labelAlign: 'top'
+        },
+        {
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Only Feature dependencies',
+            name: 'lowestDependencies',
             labelAlign: 'top'
         },
         {
@@ -77,13 +85,18 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             name: 'endDate',
             labelAlign: 'top'
         },
+        {
+            xtype: 'rallynumberfield',
+            fieldLabel: 'Grid bar width',
+            name: 'lineSize',
+            labelAlign: 'top'
+        }
         
         ];
         return returned;
     },
     itemId: 'rallyApp',
         MIN_COLUMN_WIDTH:   200,        //Looks silly on less than this
-        MIN_ROW_HEIGHT: 20 ,                 //
         LOAD_STORE_MAX_RECORDS: 100, //Can blow up the Rally.data.wsapi.filter.Or
         WARN_STORE_MAX_RECORDS: 300, //Can be slow if you fetch too many
         NODE_CIRCLE_SIZE: 8,                //Pixel radius of dots
@@ -122,12 +135,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 'Iteration',
                 'Milestones',
                 //Customer specific after here. Delete as appropriate
-                'c_ProjectIDOBN',
-                'c_QRWP',
-                'c_ProgressUpdate',
-                'c_RAIDSeverityCriticality',
-                'c_RISKProbabilityLevel',
-                'c_RAIDRequestStatus'   
+                // 'c_ProjectIDOBN',
+                // 'c_QRWP',
+                // 'c_ProgressUpdate',
+                // 'c_RAIDSeverityCriticality',
+                // 'c_RISKProbabilityLevel',
+                // 'c_RAIDRequestStatus'   
             ],
         CARD_DISPLAY_FIELD_LIST:
             [
@@ -138,12 +151,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 'Project',
                 'PercentDoneByStoryCount',
                 'PercentDoneByStoryPlanEstimate',
-                'PredecessorsAndSuccessors',
+                'PlannedStartDate',
+                'PlannedEndDate',
                 'State',
-                'Milestones',
                 //Customer specific after here. Delete as appropriate
-                'c_ProjectIDOBN',
-                'c_QRWP'
+                // 'c_ProjectIDOBN',
+                // 'c_QRWP'
 
             ],
 
@@ -154,7 +167,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         },{
             xtype: 'container',
             itemId: 'rootSurface',
-            margin: '5 5 5 5',
+            margin: '5 15 5 5',
             layout: 'auto',
             width: '100%',
             title: 'Loading...',
@@ -185,11 +198,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     //Continuation point after selectors ready/changed
 
     _enterMainApp: function() {
-
+        gApp._rowHeight = gApp.getSetting('lineSize') || 20;
         //Get all the nodes and the "Unknown" parent virtual nodes
         var nodetree = gApp._createNodeTree(gApp._nodes);
         var svg = d3.select('svg');
-        svg.attr('height', gApp.MIN_ROW_HEIGHT * nodetree.value);
+        svg.attr('height', gApp._rowHeight * nodetree.value);
         //Make surface the size available in the viewport (minus the selectors and margins)
         var rs = this.down('#rootSurface');
         rs.getEl().setHeight(svg.attr('height'));
@@ -225,7 +238,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .domain([
                 timebegin, timeend
             ])
-            .range([0, parseInt(d3.select('svg').attr('width'))  - gApp.LEFT_MARGIN_SIZE]);
+            .range([0, parseInt(d3.select('svg').attr('width'))- (gApp.LEFT_MARGIN_SIZE + 10)]);
     },
 
     _setZoomer: function() {
@@ -242,6 +255,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .on("zoom",gApp._zoomed);
         var zoomBox = d3.select('#zoomTree');
         gApp.gX = zoomBox.append('g')
+            .attr('width', width - (gApp.LEFT_MARGIN_SIZE + 10))
+            .attr('height', height)
             .attr("class", 'axis')
             .call(gApp.xAxis);    
             
@@ -258,7 +273,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
 
     _rescaledStart: function() {
-        console.log('rescaled start');
         gApp._removeSVGTree();
         gApp._addSVGTree();
         gApp._setZoomer();
@@ -266,7 +280,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
     _startTreeAgain: function()
     {
-        console.log('start again');
         gApp._initialiseScale();
         gApp._rescaledStart();
     },
@@ -302,11 +315,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         nodetree.eachBefore(function(d) {
             //Come here before we visit the children to set up our 'g' spot
             var shiftY = ((d.rpos * svgHeight) + 
-                            (d.parent?gApp.MIN_ROW_HEIGHT:0)) ;
+                            (d.parent?gApp._rowHeight:0)) ;
             if ( !d.parent ) {
                 d.g = d3.select('#zoomTree').append('g');
                 d.t = d3.select('#staticTree').append('g');
-                shiftY += (gApp.getSetting('showTimeLine')?gApp.MIN_ROW_HEIGHT:0);
+                shiftY += (gApp.getSetting('showTimeLine')?gApp._rowHeight:0);
             }
             else {
                 d.g = d.parent.g.append('g');
@@ -340,17 +353,27 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 }
 
                 d.g.append('rect')
-                    .attr('rx', gApp.MIN_ROW_HEIGHT/2)
-                    .attr('ry', gApp.MIN_ROW_HEIGHT/2)
+                    .attr('rx', gApp._rowHeight/2)
+                    .attr('ry', gApp._rowHeight/2)
                     .attr('x', startX)
                     .attr('width', dWidth)
-                    .attr('height',gApp.MIN_ROW_HEIGHT)
+                    .attr('height',gApp._rowHeight)
                     .attr('fill', gApp.colours[d.depth+1])
                     .attr('opacity', 0.5)
-                    .attr('class', rClass)
+                    .attr('class', rClass + ' clickable')
                     .attr('id', 'rect-'+d.data.Name)
+                    .on('mouseover', function(a, idx, arr) {
+                        gApp._nodeMouseOver(d,idx, arr);
+                    })
+                    .on("mouseout", function(a, index, array) { 
+                        gApp._nodeMouseOut(d,index,array);
+                    })
                     .on('click', function(a, idx, arr) {
-                        gApp._setTimeline(d);
+                        if (d3.event.shiftKey) {
+                            gApp._dataPanel(d,idx,arr);
+                        } else {
+                            gApp._setTimeline(d);
+                        }
                     });
 
                 //Add clipPath here
@@ -358,11 +381,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     .attr('id', 'clipPath-'+d.data.Name);
 
                 var clipBox =d.g.append('rect')
-                    .attr('rx', gApp.MIN_ROW_HEIGHT/2)
-                    .attr('ry', gApp.MIN_ROW_HEIGHT/2)
+                    .attr('rx', gApp._rowHeight/2)
+                    .attr('ry', gApp._rowHeight/2)
                     .attr('x', startX)
                     .attr('width', dWidth)
-                    .attr('height',gApp.MIN_ROW_HEIGHT);
+                    .attr('height',gApp._rowHeight);
                     // .attr('fill', gApp.colours[d.depth+1])
                     // .attr('opacity', 0.5)
                     // .attr('class', rClass);
@@ -375,10 +398,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 d.g.append('text')
                     .attr('clip-path', 'url(#clipPath-'+d.data.Name)
                     .attr('id', 'text-'+d.data.Name)
-                    .attr('x', startX + (startX?(gApp.MIN_ROW_HEIGHT/2):gApp.MIN_ROW_HEIGHT))
-                    .attr('y', gApp.MIN_ROW_HEIGHT-6)  //Should follow point size of font
+                    .attr('x', startX + (startX?(gApp._rowHeight/2):gApp._rowHeight))
+                    .attr('y', gApp._rowHeight/2)  //Should follow point size of font
                     .attr('class', 'normalText')
                     .attr('editable', 'none')
+                    .attr('alignment-baseline', 'central')
+                    .attr('style', 'font-size:' + (gApp._rowHeight/2))
                     .text(d.data.record.get('Name'));
 
 
@@ -390,12 +415,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     d.data.record.get('PlannedEndDate')
                 ){
                     d.t.append('polygon')
-                        .attr('class','left-arrow')
+                        .attr('class','clickable left-arrow')
                         .attr('id', 'leftarrow'+d.data.Name)
                         .attr('width', 10)
                         .attr('height', 10)
                         .attr('points', "10,0 0,5 10,10")
-                        .attr('transform', 'translate(' + (gApp.LEFT_MARGIN_SIZE+5) + ',5)')   //Overlay over start of zoombox
+                        .attr('transform', 'translate(' + (gApp.LEFT_MARGIN_SIZE+5) + ',' + ((gApp._rowHeight/2)-5)+ ')')   //Overlay over start of zoombox
                         .on('click', function(a, idx, arr) {
                             gApp._setTimeline(d);
                         });
@@ -404,14 +429,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     d.t.append('circle')
                         .attr('class','data--errors')
                         .attr('r', 5)
-                        .attr('transform', 'translate(' + (gApp.LEFT_MARGIN_SIZE+10) + ',' + gApp.MIN_ROW_HEIGHT/2 + ')');   //Overlay over start of zoombox
+                        .attr('transform', 'translate(' + (gApp.LEFT_MARGIN_SIZE+10) + ',' + (gApp._rowHeight/2) + ')');   //Overlay over start of zoombox
                 }
             }
             d.t.append('text')
                 .text(d.data.Name)
                 .attr('x', 15 * (d.depth + 1))   //Leave space for up/down arrow
-                .attr('y', gApp.MIN_ROW_HEIGHT - 3)
-                .attr('class', 'node boldText');
+                .attr('y', gApp._rowHeight/2)
+                .attr('class', 'node boldText')                    
+                .attr('alignment-baseline', 'central')
+                .attr('style', 'font-size:' + (gApp._rowHeight/2))
+;
 
             if (d.children) {
                 d.t.append('polygon')
@@ -435,8 +463,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             if (d.children || d._children) {
                 d.t.append('rect')
                     .attr('class', 'clickable arrowbox')
-                    .attr('width', gApp.MIN_ROW_HEIGHT)
-                    .attr('height', gApp.MIN_ROW_HEIGHT)
+                    .attr('width', gApp._rowHeight)
+                    .attr('height', gApp._rowHeight)
                     .on('click', function() { gApp._switchChildren(d);});
             }
         });
@@ -461,10 +489,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                     zClass += 'textBlink';
                                 } else {
                                     if (gApp._sequenceError( d, e)) {
-                                        zClass += (zClass.length?' ':'' + 'data--errors');
+                                        zClass += (zClass.length?' ':'') + 'data--errors';
                                     }
                                     else {
-                                        zClass += (zClass.length?' ':'' + 'no--errors');
+                                        zClass += (zClass.length?' ':'') + 'no--errors';
                                     }    
                                 }
 
@@ -493,14 +521,18 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                     .attr('r', 3)
                                     .on('mouseover', function(a, idx, arr) { gApp._createDepsPopover(e, arr[idx], false);})    //Default to successors
                                     .attr('class', zClass);
-                                zoomTree.append('path')
-                                    .attr('d', 
-                                        'M' + x0 + ',' + y0 + 
-                                        'C' + (x0+150) + ',' + (y0 + (y1-y0)/8)  +
-                                        ' ' + (x1-150) + ',' + (y1 - (y1-y0)/8) +
-                                        ' ' + x1 + ',' + y1) 
-                                    .attr('class', zClass);
-
+                                
+                                zClass += (zClass.length?' ':'') + 'dashed' + d.data.record.get('PortfolioItemType').Ordinal.toString();
+                                
+                                if ( !gApp.getSetting('lowestDependencies') || d.data.record.get('PortfolioItemType').Ordinal === 0) {
+                                    zoomTree.append('path')
+                                        .attr('d', 
+                                            'M' + x0 + ',' + y0 + 
+                                            'C' + (x0+150) + ',' + (y0 + (y1-y0)/8)  +
+                                            ' ' + (x1-150) + ',' + (y1 - (y1-y0)/8) +
+                                            ' ' + x1 + ',' + y1) 
+                                        .attr('class', zClass);
+                                }
                             });
                         }
                     }
@@ -524,12 +556,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                         (node.data.record.get('PredecessorsAndSuccessors').Successors > 0);
 
                         panel._getTabPanel().setActiveTab((tabOverride !== undefined)?tabOverride:(activeTab?1:0));
-                        console.log( 'setting topleft: ',
-                                            circ.getBBox().x + circ.getBBox().width + gApp.LEFT_MARGIN_SIZE, 
-                                            circ.getBBox().y + (gApp.MIN_ROW_HEIGHT/2)
-                        );
                         panel.el.setLeftTop (    parseInt(circ.getBBox().x + circ.getBBox().width + gApp.LEFT_MARGIN_SIZE), 
-                                                parseInt(circ.getBBox().y + (gApp.MIN_ROW_HEIGHT/2))
+                                                parseInt(circ.getBBox().y + (gApp._rowHeight/2))
                         );
                     }
                 }
@@ -604,9 +632,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
             //For th audit variant, we want to do a check of all the lookback changes associated with this item and do checks
             if ( !node.card) {
-                var card = Ext.create('AuditCard', {
+                var card = Ext.create('Rally.ui.cardboard.Card', {
                     'record': node.data.record,
-                    fields: ['CreationDate', 'LastUpdateDate'],
+                    fields: gApp.CARD_DISPLAY_FIELD_LIST,
                     constrain: false,
                     width: gApp.MIN_COLUMN_WIDTH,
                     height: 'auto',
@@ -617,10 +645,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     listeners: {
                         show: function(card){
                             //Move card to one side, preferably closer to the centre of the screen
-                            var xpos = array[index].getScreenCTM().e - gApp.MIN_COLUMN_WIDTH;
-                            var ypos = array[index].getScreenCTM().f;
-                            card.el.setLeftTop( (xpos - gApp.MIN_COLUMN_WIDTH) < 0 ? xpos + gApp.MIN_COLUMN_WIDTH : xpos - gApp.MIN_COLUMN_WIDTH, 
-                                (ypos + this.getSize().height)> gApp.getSize().height ? gApp.getSize().height - (this.getSize().height+20) : ypos);  //Tree is rotated
+                            var xpos = d3.event.clientX;
+                            var ypos = d3.event.clientY;
+                            card.el.setLeftTop( (xpos - (this.getSize().width+20)) < 0 ? (xpos + 20) : (xpos - (this.getSize().width+20)), 
+                                (ypos + this.getSize().height)> gApp.getSize().height ? (gApp.getSize().height - (this.getSize().height+20)) : (ypos+10));  //Tree is rotated
                         }
                     }
                 });
@@ -1317,8 +1345,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         svg.append("g")        
             .attr("transform","translate(" + gApp.LEFT_MARGIN_SIZE + ",0)")
             .attr("id","zoomTree")
+            .attr('width', +svg.attr('width') - gApp.LEFT_MARGIN_SIZE)
+            .attr('height', +svg.attr('height'))
             .append('rect')
-            .attr('width', +svg.attr('width'))
+            .attr('width', +svg.attr('width') - gApp.LEFT_MARGIN_SIZE)
             .attr('height', +svg.attr('height'))
             .attr('class', 'arrowbox')
             .on('click', gApp._startTreeAgain);

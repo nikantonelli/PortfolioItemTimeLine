@@ -32,6 +32,27 @@ path.data--errors {
   fill: none;
 }
 
+path.dashed0 {
+  stroke-dasharray: none
+}
+
+path.dashed1 {
+  stroke-dasharray: 48 2
+}
+
+path.dashed2 {
+  stroke-dasharray: 38 2
+}
+path.dashed3 {
+  stroke-dasharray: 28 2
+}
+path.dashed4 {
+  stroke-dasharray: 18 2
+}
+path.dashed5 {
+  stroke-dasharray: 8 2
+}
+
 circle.data--errors {
   fill: #f00;
 }
