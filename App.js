@@ -14,7 +14,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             showFilter: true,
             allowMultiSelect: false,
             onlyDependencies: false,
-            oneTypeOnly: true,
+            oneTypeOnly: false,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
             lineSize: 20,
@@ -83,6 +83,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             xtype: 'rallynumberfield',
             fieldLabel: 'Grid bar width',
             name: 'lineSize',
+            minValue: 15,
             labelAlign: 'top'
         }
         
@@ -536,7 +537,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                 
                                 zClass += (zClass.length?' ':'') + 'dashed' + d.data.record.get('PortfolioItemType').Ordinal.toString();
                                 
-                                if ( !gApp.getSetting('lowestDependencies') || d.data.record.get('PortfolioItemType').Ordinal === 0) {
+                                if (    gApp.getSetting('oneTypeOnly') ||  
+                                       !gApp.getSetting('lowestDependencies') || 
+                                        d.data.record.get('PortfolioItemType').Ordinal === 0
+                                ) {
                                     zoomTree.append('path')
                                         .attr('d', 
                                             'M' + x0 + ',' + y0 + 
