@@ -14,7 +14,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             showFilter: true,
             allowMultiSelect: false,
             onlyDependencies: false,
-            oneTypeOnly: false,
+            oneTypeOnly: true,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
             lineSize: 20,
@@ -218,7 +218,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             d.value = d._value;
             d._value = null;
         }
-        gApp._startTreeAgain();
+        gApp._zoomedStart();
     },
 
     _initialiseScale: function() {
@@ -334,6 +334,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 d.g = d.parent.g.append('g');
                 d.t = d.parent.t.append('g');
             }
+            //But not the 'root' item in a multi-select
+            if ( !d.data.record.data.ObjectID) {return; }
 
             var startX = gApp.dateScaler(new Date(d.data.record.get('PlannedStartDate')));
             var endX   = gApp.dateScaler(new Date(d.data.record.get('PlannedEndDate')));
@@ -479,6 +481,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         });
         nodetree.each(function(d) {
             //Now add the dependencies lines
+            if (!d.data.record.data.ObjectID) { return; }
             var deps = d.data.record.get('Successors');
             if (deps && deps.Count) {
                 gApp._getSuccessors(d.data.record).then (
@@ -576,7 +579,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
     
     _scheduleError: function(d) {
-        if ( !d.parent ) { return false; }  //Top level item doesn't have a parent
+        if ( !d.parent || !d.parent.data.record.data.ObjectID ) { return false; }  //Top level item doesn't have a parent
         return ( d.data.record.get('PlannedEndDate') > d.parent.data.record.get('PlannedEndDate')) ||
              ( d.data.record.get('PlannedStartDate') < d.parent.data.record.get('PlannedStartDate'));
     },
@@ -1134,12 +1137,27 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         if (gApp.getSetting('oneTypeOnly')){
             //Get the records you can see of the type set in the piType selector
             //and call _getArtifacts with them.
-            var lowest = gApp._getSelectedOrdinal() === 0;
-            var fetchConfig = gApp._fetchConfig(lowest);
+            var fetchConfig = gApp._fetchConfig(true);
             fetchConfig.model = gApp._getSelectedType();
             fetchConfig.autoLoad = true;
-            //Ext.create ('Rally.data.wsapi.s')
-
+            fetchConfig.listeners = {
+                load: function(store,records,opts) {
+                    if (records.length > 1) {
+                        if ( gApp._nodes) gApp._nodes = [];
+                        gApp._nodes.push({'Name': 'Combined View',
+                            'record': {
+                                'data': {
+                                    '_ref': 'root',
+                                    'Name': ''
+                                }
+                            },
+                            'local':true
+                        });
+                        gApp._getArtifacts(records);
+                    }
+                }
+            };
+            Ext.create ('Rally.data.wsapi.Store', fetchConfig );
         }
     },
 
@@ -1152,10 +1170,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 }
             ],
             fetch: gApp.STORE_FETCH_FIELD_LIST,
-            callback: function(records, operation, success) {
-                //Start the recursive trawl down through the levels
-                if (success && records.length)  gApp._getArtifacts(records);
-            },
+            
             filters: []
         };
         if (gApp.getSetting('hideArchived')) {
@@ -1197,13 +1212,20 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         this.fireEvent('redrawNodeTree');
         //Starting with highest selected by the combobox, go down
 
-        _.each(data, function(record) {
-            var lowest = record.get('PortfolioItemType').Ordinal < 2;
-            if (record.get('Children')){                                //Limit this to feature level and not beyond.
-                var collectionConfig = gApp._fetchConfig(lowest);
-                record.getCollection( 'Children').load( collectionConfig );
-            }
-        });
+        if (!gApp.getSetting('oneTypeOnly')) {
+            _.each(data, function(record) {
+                var lowest = record.get('PortfolioItemType').Ordinal < 2;
+                if (record.get('Children')){  
+                    //Limit this to feature level and not beyond.
+                    var collectionConfig = gApp._fetchConfig(lowest);
+                    collectionConfig.callback = function(records, operation, success) {
+                        //Start the recursive trawl down through the levels
+                        if (success && records.length)  gApp._getArtifacts(records);
+                    };
+                    record.getCollection( 'Children').load( collectionConfig );
+                }
+            });
+        }
     },
 
     _createNodes: function(data) {
@@ -1279,7 +1301,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
     
     _getSelectedType: function() {
-        return gApp.down('#piType').lastSelection[0].get('Type');
+        return gApp.down('#piType').lastSelection[0].get('TypePath');
     },
 
     _getTypeList: function(highestOrdinal) {
