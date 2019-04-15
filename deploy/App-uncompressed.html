@@ -259,7 +259,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var width = +svg.attr('width');
         var height = +svg.attr('height');
         gApp.xAxis = d3.axisBottom(gApp.dateScaler)
-            .ticks(( (width -gApp.LEFT_MARGIN_SIZE)+ 2)/50)
+            .ticks(( (width -gApp.LEFT_MARGIN_SIZE)+ 2)/80)
             .tickSize(height)
             .tickPadding(gApp.getSetting('showTimeLine')? (8 - height):0);
         gApp.gX  = d3.select('svg').append('g');
@@ -285,7 +285,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp.gX.call(gApp.xAxis.scale(d3.event.transform.rescaleX(gApp.dateScaler)));
         var data = gApp.gX.selectAll('g');
         data.each( function(d) {
-            console.log("comparing: ", d, minDate, maxDate);
             if (d > maxDate) { maxDate = d;}
             if (d < minDate) { minDate = d;}
         });
@@ -325,23 +324,31 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp._rescaledStart();
     },
 
-    _dragEnd: function() {
+    _dragEnd: function(d, idx, arr) {
         debugger;
     },
 
-    _dragDrag: function() {
+    _dragDrag: function(d, idx, arr) {
         //The 'this' is a group, so we want to move it with a 'translate'
         debugger;
 //        this.setAttribute('x', +this.getAttribute('x') + d3.event.dx);
     },
 
-    _dragStart: function() {
+    _dragStart: function(d, idx, arr) {
         //Disable popups, hovers and cards
-        gApp.dragged = d3.event.subject;
+//        gApp.dragged = d3.event.subject;
+    },
+
+    _getSVGHeight: function() {
+        return parseInt(d3.select('svg').attr('height')) - (gApp.getSetting('showTimeLine')?gApp._rowHeight:0);
+    },
+
+    _itemMenu: function(d) {
+        Rally.nav.Manager.edit(d.data.record);
     },
 
     _refreshTree: function(){
-        var svgHeight = parseInt(d3.select('svg').attr('height')) - (gApp.getSetting('showTimeLine')?gApp._rowHeight:0);
+        var svgHeight = gApp._getSVGHeight();
         var svgWidth = parseInt(d3.select('svg').attr('width')) - gApp.LEFT_MARGIN_SIZE;
         var nodetree = gApp._nodeTree;
 
@@ -350,29 +357,28 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
         nodetree = partition(nodetree);
         gApp._indexTree(nodetree);
-//        console.log(nodetree);
         
         //Let's scale to the dateline
         var node = d3.select('#zoomTree').selectAll(".node")
             .data(nodetree.descendants())
             .enter().append("g")
                 .attr('class', 'draggable')
+                .attr('id', function(d) { return 'group-' + d.data.Name;})
                 .attr( 'transform', function(d) {
                     var x = gApp.dateScaler(new Date(d.data.record.get('PlannedStartDate')));
+                    var e = gApp.dateScaler(new Date(d.data.record.get('PlannedEndDate')));
                     d.x = (x<0?0:x);
-                    d.width = gApp.dateScaler(new Date(d.data.record.get('PlannedEndDate'))) - d.x;
+                    d.width = e - d.x;
                     d.width = d.width<0?0:d.width;
-//                    if ( d.data.Name === 'F10') { debugger;}
                     var retval =  "translate(" + d.x + "," + 
                     ((d.x0 * svgHeight) + (d.depth*gApp._rowHeight)) + 
                     ")";
-                    console.log(retval);
                     return retval;
                 });
 
-        node.append('rect')
-            .attr('rx', gApp._rowHeight/3)
-            .attr('ry', gApp._rowHeight/3)
+        var drags = node.append('rect')
+            .attr('rx', gApp._rowHeight/2)
+            .attr('ry', gApp._rowHeight/2)
             .attr('width', function(d) { return d.width; })
             .attr('height',gApp._rowHeight)
             .attr('fill', function(d) { return gApp.colours[d.depth+1]; })
@@ -385,31 +391,66 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 else {
                     rClass += 'no--errors';
                 }
-                return rClass + ' clickable';
+                return rClass + ' draggable clickable';
             })
             .attr('id', function(d) { return 'rect-'+d.data.Name;})
         ;
-                //Add clipPath here
-                var cp = node.append('clipPath')
-                    .attr('id', function(d) { return 'clipPath-'+d.data.Name +')';});
+        //Add clipPath here
+        var cp = node.append('clipPath')
+            .attr('id', function(d) { return 'clipPath-'+d.data.Name;});
 
-                var clipBox = node.append('rect')
-                    .attr('width', function(d) { return d.width; })
-                    .attr('height',gApp._rowHeight)
-                    .attr('class', 'arrowbox');
-                    //Reposition the clipBox as d3 doesn't seem to let me
-                    cp.node().appendChild(clipBox.node());
-                
-                node.append('text')
-                    .attr('clip-path', function(d) { return 'url(#clipPath-'+d.data.Name;})
-                    .attr('id', function(d) { return 'text-'+d.data.Name;})
-                    .attr('x', function(d) { return d.x?(gApp._rowHeight/2):gApp._rowHeight;})
-                    .attr('y', gApp._rowHeight/2)  //Should follow point size of font
-                    .attr('class', 'normalText')
-                    .attr('editable', 'none')
-                    .attr('alignment-baseline', 'central')
-                    .attr('style', 'font-size:' + (gApp._rowHeight-8))
-                    .text(function(d) { return d.data.record.get('Name');});
+        cp.append('rect')
+            //Allow a little thing you can hover over, or show the whole text
+            //if the bar is missing completely
+            .attr('width', function(d) { return (d.width>10)?d.width:svgWidth; })
+            .attr('height',gApp._rowHeight)
+            .attr('class', 'arrowbox');
+        
+        //We are going to add the QDP panel ref on the end of where we are
+        // var xrefs = node.append('a')
+        //     .attr('href', function(d) {
+        //         return href = Rally.nav.Manager.getDetailUrl(d.data.record);
+        //     })
+
+        node.append('text')
+            .attr('y', gApp._rowHeight/2)  //Should follow point size of font
+            .attr('x', gApp._rowHeight/2)
+            .attr('alignment-baseline', 'central')
+            .text('V')
+            .attr('class', function(d) {
+                var lClass = 'icon-gear app-menu';
+                if ( !d.data.record.get('PlannedStartDate') || !d.data.record.get('PlannedEndDate')){
+                    lClass += ' error';
+                }
+                return lClass;
+            })
+            .on('click',function(d) { gApp._itemMenu(d);});
+
+        node.append('text')
+            .attr('clip-path', function(d) { return 'url(#clipPath-'+d.data.Name + ')';})
+            .attr('id', function(d) { return 'text-'+d.data.Name;})
+            //We are going to put a gear menu in the front
+            .attr('x', gApp._rowHeight+15)
+            .attr('y', gApp._rowHeight/2)  //Should follow point size of font
+            .attr('class', 'clickable normalText')
+            .attr('editable', 'none')
+            .attr('alignment-baseline', 'central')
+            .attr('style', 'font-size:' + (gApp._rowHeight-8))
+            .on('click', function(d, idx, arr) {
+                if (d3.event.shiftKey) {
+                    gApp._dataPanel(d,idx,arr);
+                } else {
+                    gApp._setTimeline(d);
+                }
+            })
+            .text(function(d) { return d.data.record.get('FormattedID') + ": " + d.data.record.get('Name');});
+            
+        gApp.drag = d3.drag()
+            .on('end', gApp._dragEnd)
+            .on('start', gApp._dragStart)
+            .on('drag', gApp._dragDrag)
+            .container(function() { return this; });
+        drags.call(gApp.drag);
 
         return;
 
@@ -1133,6 +1174,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     onSettingsUpdate: function() {
         if ( gApp._nodes) gApp._nodes = [];
+        gApp._kickOff();
     },
 
     onTimeboxScopeChange: function(newTimebox) {
@@ -1260,6 +1302,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                         });
                         gApp._getArtifacts(records);
                     }
+                },
+                change: function (a,b,c,d,e,f) {
+                    console.log('change: ',arguments);
                 }
             };
             Ext.create ('Rally.data.wsapi.Store', fetchConfig );
@@ -1515,6 +1560,18 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     launch: function() {
 
         this.on('redrawNodeTree', this.redrawNodeTree);
+        this.subscribe(this, Rally.Message.objectUpdate, this._zoomedStart, this);
+    },
+
+    _objectUpdated: function(records){
+
+        _.each(records, function(record) {
+            var d = gApp._findTreeNode(gApp._getNodeTreeRecordId(record));
+            var node = d3.select('group-'+d.data.Name);
+            node.remove();
+            d.data.record = record;
+            gApp._zoomedStart();
+        });
     },
 
     initComponent: function() {
@@ -18504,10 +18561,18 @@ Object.defineProperty(exports, '__esModule', { value: true });
 .left-arrow {
   fill: goldenrod;
 }
+.error {
+  fill: #f00;
+}
 .arrowbox {
   fill: transparent;
 }
 .normalText {
+  font-size: 1em;
+  font-family: NotoSans,Helvetica,Arial;
+}
+.normalText:hover {
+  fill: #888;
   font-size: 1em;
   font-family: NotoSans,Helvetica,Arial;
 }

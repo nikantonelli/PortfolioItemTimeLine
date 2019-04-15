@@ -11,13 +11,23 @@
   fill: goldenrod;
 }
 
+.error {
+  fill: #f00;
+}
+
 .arrowbox {
   fill: transparent;
 }
 
 .normalText {
-    font-size: 1em;
-    font-family: NotoSans,Helvetica,Arial;
+  font-size: 1em;
+  font-family: NotoSans,Helvetica,Arial;
+}
+
+.normalText:hover {
+  fill: #888;
+  font-size: 1em;
+  font-family: NotoSans,Helvetica,Arial;
 }
 
 .error--node  {
