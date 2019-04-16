@@ -14,7 +14,7 @@ The lowest level portfolio items can be filtered based on the advanced filter se
 
 If you have a lot of portfolio items and only want to see those with dependencies, there is an app setting for that too. If you select a single level of portfolio item, then you will see them all. If you are still on the multi-level view, then only the lowest level portfolio item dependencies are shown
 
-Hover over a dependency link dot and it will give you the dependency popover. Hover over the bar and it will give you a small details panel. If you then decide you want to look at an item in more detail, use the shift key and hold while you click on the bar. This will open a modal dialog panel for the item. From there, you can click on the blue hyperlink to get to the usual QDP and FDP panels.
+Hover over a dependency link dot and it will give you the dependency popover. Hover over the bar and it will give you a small details panel. If you then decide you want to look at an item in more detail, use the ctrl key and hold while you click on the bar. This will open a modal dialog panel for the item. From there, you can click on the blue hyperlink to get to the usual QDP and FDP panels (see note below).
 
 The dependencies are those that exist between the portfolio items. The user story dependencies are not considered in this app right now. However, you can get to them via the datapanel just mentioned.
 
@@ -24,6 +24,6 @@ The dots and lines on the bars and between the bars are coloured when there is a
 
 The up/down arrows to the far left of the screen will collapse/restore that portfolio item and it's corresponding children.
 
-The three-bar symbol on the left will take you to the edit page for that item. If you update the start/end dates in the edit panel, then the view will redraw to reflect those changes. If the portfolio item does not have both the PlannedStart and PlannedEnd dates, then the symbol will be red
+Note: The three-bar symbol on the left will take you directly to the edit page for that item. If you update the start/end dates in the edit panel, then the view will redraw to reflect those changes. If the portfolio item does not have both the PlannedStart and PlannedEnd dates, then the symbol will be red
 
 Oh, and I shouldn't forget, if you think the text is too small, you can set a "line size" in the options which will increase the bar width and the font size!

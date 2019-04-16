@@ -390,6 +390,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 }
                 return rClass + ' draggable clickable';
             })
+            .on('mouseover', function(d, idx, arr) { gApp._nodeMouseOver(d, idx, arr);})
+            .on('mouseout', function(d, idx, arr) { gApp._nodeMouseOut(d, idx, arr);})
             .attr('id', function(d) { return 'rect-'+d.data.Name;})
         ;
         //Add clipPath here
