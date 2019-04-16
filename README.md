@@ -4,7 +4,7 @@ Portfolio Item Tree Time Line
 ## Overview
 
 Another take on the Portfolio Timeline page in Rally: a string board for PI planning
-![alt text](https://github.com/nikantonelli/PortfolioItemTimeLine/blob/master/Images/overview.png)
+![alt text](https://github.com/nikantonelli/PortfolioItemTimeLine/blob/Strings-board/Images/overview.png)
 
 After selecting a top level item, the app will find all the portfolio items attached to that and then lay them out using the PlannedStartDate and PlannedEndDate. The initial view will be today minus 30days until today plus 180 days, but you can set that in the app settings if you want to override it.
 
