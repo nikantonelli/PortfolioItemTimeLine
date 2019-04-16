@@ -22,8 +22,8 @@ The dependency lines can be shown for just the lowest level item (usually Featur
 
 The dots and lines on the bars and between the bars are coloured when there is a discrepancy in the Planned dates compared with the items parent. E.g. the dates are outside the parent's ones. The border of a bar goes red as well (and this is independent of dependencies).
 
-If the portfolio item does not have both the PlannedStart and PlannedEnd dates, then the symbol on the left will be red
-
 The up/down arrows to the far left of the screen will collapse/restore that portfolio item and it's corresponding children.
+
+The three-bar symbol on the left will take you to the edit page for that item. If you update the start/end dates in the edit panel, then the view will redraw to reflect those changes. If the portfolio item does not have both the PlannedStart and PlannedEnd dates, then the symbol will be red
 
 Oh, and I shouldn't forget, if you think the text is too small, you can set a "line size" in the options which will increase the bar width and the font size!
