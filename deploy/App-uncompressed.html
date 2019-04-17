@@ -629,8 +629,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _checkSchedule: function(d, start, end ) {
         var childStart = (start === undefined)? d.data.record.get('PlannedStartDate') : start;
         var childEnd = (end === undefined)? d.data.record.get('PlannedEndDate') : end;
-        return (childEnd > d.parent.data.record.get('PlannedEndDate')) ||
-            (childStart < d.parent.data.record.get('PlannedStartDate'));
+        if ( d.parent.data.record.ObjectID) {
+          return (childEnd > d.parent.data.record.get('PlannedEndDate')) ||
+              (childStart < d.parent.data.record.get('PlannedStartDate'));
+        } else {
+          return false;
+        }
     },
 
     _sequenceError: function(a, b) {
