@@ -3,7 +3,7 @@ Portfolio Item Tree Time Line
 
 ## Overview
 
-Another take on the Portfolio Timeline page in Rally: a string board for PI planning
+Another take on the Portfolio Timeline page in Rally: a string board for PI planning with drag'n'drop positioning
 ![alt text](https://github.com/nikantonelli/PortfolioItemTimeLine/blob/Strings-board/Images/overview.png)
 
 Option 1: after selecting a top level item, the app will find all the portfolio items attached to that and then lay them out using the PlannedStartDate and PlannedEndDate. The initial view will be today minus 30days until today plus 180 days, but you can set that in the app settings if you want to override it.
@@ -29,3 +29,5 @@ The up/down arrows to the far left of the screen will collapse/restore that port
 Note: The three-bar symbol on the left will take you directly to the edit page for that item. If you update the start/end dates in the edit panel, then the view will redraw to reflect those changes. If the portfolio item does not have both the PlannedStart and PlannedEnd dates, then the symbol will be red
 
 Oh, and I shouldn't forget, if you think the text is too small, you can set a "line size" in the options which will increase the bar width and the font size!
+
+Now for the good bit..... YOU CAN DRAG AND DROP the items to change their dates. In this initial version, you can drag on the bar (not the text or icon) and you can push the item back and forth. The duration of the item does not change. If you want to change that, then click on the three bar symbol and manually modify the dates. Don't forget to save any changes using the button at the top before you do or they won't be reflected in the QDP. Alternatively, you can use the QDP to change them and the change will be removed from those outstanding (which can then be saved using the other button at the top).

@@ -34,8 +34,7 @@
   fill: rgb(0, 0, 0);
 }
 .data--errors  {
-  stroke: #f00;
-  stroke-width: 1px;
+  fill: #f00;
 }
 
 path.data--errors {
@@ -78,6 +77,11 @@ rect.data--errors {
 
 path.no--errors {
   fill: none;
+}
+
+path.data--errors {
+  stroke: #f00;
+  stroke-width: 1px;
 }
 
 rect.no--errors {
