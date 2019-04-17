@@ -1104,6 +1104,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         inlineFilterButton._previousTypesAndFilters = inlineFilterButton.getTypesAndFilters();
         if ( gApp._nodes.length) {
             gApp._nodes = [];
+        }
+        if (gApp.getSetting('oneTypeOnly')) {
+            gApp._fetchOneType();
+        } else {
             gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
         }
     },
@@ -1199,32 +1203,36 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         if (gApp.getSetting('oneTypeOnly')){
             //Get the records you can see of the type set in the piType selector
             //and call _getArtifacts with them.
-            var fetchConfig = gApp._fetchConfig(true);
-            fetchConfig.model = gApp._getSelectedType();
-            fetchConfig.autoLoad = true;
-            fetchConfig.pageSize = 2000;    //Wells Fargo..... Ouch!
-            fetchConfig.listeners = {
-                load: function(store,records,opts) {
-                    if (records.length > 1) {
-                        if ( gApp._nodes) gApp._nodes = [];
-                        gApp._nodes.push({'Name': 'Combined View',
-                            'record': {
-                                'data': {
-                                    '_ref': 'root',
-                                    'Name': ''
-                                }
-                            },
-                            'local':true
-                        });
-                        gApp._getArtifacts(records);
-                    }
-                },
-                change: function (a,b,c,d,e,f) {
-                    console.log('change: ',arguments);
-                }
-            };
-            Ext.create ('Rally.data.wsapi.Store', fetchConfig );
+            gApp._fetchOneType();
         }
+    },
+
+    _fetchOneType: function() {
+        var fetchConfig = gApp._fetchConfig(true);
+        fetchConfig.model = gApp._getSelectedType();
+        fetchConfig.autoLoad = true;
+        fetchConfig.pageSize = 2000;    //Wells Fargo..... Ouch!
+        fetchConfig.listeners = {
+            load: function(store,records,opts) {
+                if (records.length > 0) {
+                    if ( gApp._nodes) gApp._nodes = [];
+                    gApp._nodes.push({'Name': 'Combined View',
+                        'record': {
+                            'data': {
+                                '_ref': 'root',
+                                'Name': ''
+                            }
+                        },
+                        'local':true
+                    });
+                    gApp._getArtifacts(records);
+                }
+            },
+            change: function (a,b,c,d,e,f) {
+                console.log('change: ',arguments);
+            }
+        };
+        Ext.create ('Rally.data.wsapi.Store', Ext.clone(fetchConfig));
     },
 
     _fetchConfig: function(lowest){
