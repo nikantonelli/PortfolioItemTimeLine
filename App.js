@@ -650,11 +650,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
 
     _nodeMouseOver: function(node,index,array) {
-        if (!(node.data.record.data.ObjectID)) {
+        if (node.data.record.data.ObjectID && gApp.getSetting('cardHover')) {
             //Only exists on real items, so do something for the 'unknown' item
-            return;
-        } else {
-
             if ( !node.card) {
                 var card = Ext.create('Rally.ui.cardboard.Card', {
                     'record': node.data.record,
@@ -680,6 +677,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 node.card = card;
             }
             node.card.show();
+        } else {
+            return;
         }
     },
 
