@@ -1,1 +1,7 @@
 App.1.js
+node_modules
+*.conf*
+.DS_Store
+.grunt
+_SpecRunner.html
+*.code-workspace
