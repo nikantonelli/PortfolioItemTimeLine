@@ -339,9 +339,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     _dragStart: function(d, idx, arr) {
         //Disable popups, hovers and cards?
-        if (d.card) { 
-            d.card.destroy();
-            d.card = null;
+        if (d.data.card) { 
+            d.data.card.destroy();
+            d.data.card = null;
         }
         d.dragInitStart = d3.event.x;        
     },
@@ -374,7 +374,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     _getGroupClass: function(d) {
         var rClass = 'clickable draggable' + ((d.children || d._children)?' children':'');
-        if (gApp._scheduleError(d)) {
+        if (gApp._checkSchedule(d)) {
             rClass += ' data--errors';
         }
         return rClass;
@@ -611,13 +611,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         );         
         panel.show();
     },
-    
-    _scheduleError: function(d) {
-        if ( !d.parent || !d.parent.data.record.data.ObjectID ) { return false; }  //Top level item doesn't have a parent
-        return gApp._checkSchedule(d);
-    },
 
     _checkSchedule: function(d, start, end ) {
+        if ( !d.parent || !d.parent.data.record.data.ObjectID ) { return false; }  //Top level item doesn't have a parent
         var childStart = (start === undefined)? d.data.record.get('PlannedStartDate') : start;
         var childEnd = (end === undefined)? d.data.record.get('PlannedEndDate') : end;
         return (childEnd > d.parent.data.record.get('PlannedEndDate')) ||
@@ -646,7 +642,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
     
     _nodeMouseOut: function(node, index,array){
-        if (node.card) node.card.hide();
+        if (node.data.card) node.data.card.hide();
     },
 
     _nodeMouseOver: function(node,index,array) {
@@ -655,7 +651,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             return;
         } else {
 
-            if ( !node.card) {
+            if ( !node.data.card) {
                 var card = Ext.create('Rally.ui.cardboard.Card', {
                     'record': node.data.record,
                     fields: gApp.CARD_DISPLAY_FIELD_LIST,
@@ -677,9 +673,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                         }
                     }
                 });
-                node.card = card;
+                node.data.card = card;
             }
-            node.card.show();
+            node.data.card.show();
         }
     },
 
@@ -687,7 +683,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var popover = Ext.create('Rally.ui.popover.DependenciesPopover',
             {
                 record: node.data.record,
-                target: node.card.el
+                target: node.data.card.el
             }
         );
     },
@@ -1088,14 +1084,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _nodes: [],
 
     onSettingsUpdate: function() {
-        if ( gApp._nodes) gApp._nodes = [];
+        gApp._clearNodes();
         gApp._kickOff();
     },
 
     onTimeboxScopeChange: function(newTimebox) {
         this.callParent(arguments);
         gApp.timeboxScope = newTimebox;
-        if ( gApp._nodes) gApp._nodes = [];
+        gApp._clearNodes();
         gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
     },
 
@@ -1103,7 +1099,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp.advFilters = inlineFilterButton.getTypesAndFilters().filters;
         inlineFilterButton._previousTypesAndFilters = inlineFilterButton.getTypesAndFilters();
         if ( gApp._nodes.length) {
-            gApp._nodes = [];
+            gApp._clearNodes();
             gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
         }
     },
@@ -1150,7 +1146,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 },
                 startAgain: function () {
                     var records = gApp.down('#itemSelector').valueModels;
-                    if ( gApp._nodes) gApp._nodes = [];
+                    gApp._clearNodes();
                     if (records.length > 1) {
                             gApp._nodes.push({'Name': 'Combined View',
                             'record': {
@@ -1206,7 +1202,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             fetchConfig.listeners = {
                 load: function(store,records,opts) {
                     if (records.length > 1) {
-                        if ( gApp._nodes) gApp._nodes = [];
+                        gApp._clearNodes();
                         gApp._nodes.push({'Name': 'Combined View',
                             'record': {
                                 'data': {
@@ -1303,6 +1299,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             nodes.push({'Name': record.get('FormattedID'), 'record': record, 'local': localNode, 'dependencies': []});
         });
         return nodes;
+    },
+
+    _clearNodes: function() {
+        if (gApp._nodes) {
+            gApp._removeCards();
+            gApp._nodes = [];
+        }
     },
 
     _findNode: function(nodes, recordData) {
@@ -1465,12 +1468,21 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             d3.select("#staticTree").remove();
         }
         //Go through all nodes and kill the cards
-
+        gApp._removeCards();
     },
 
     redrawNodeTree: function() {
         gApp._removeSVGTree();
         gApp._enterMainApp();
+    },
+
+    _removeCards: function () {
+        _.each(gApp._nodes, function(node) {
+            if (node.card) {
+                node.card.destroy();
+                node.card = null;
+            }
+        });
     },
 
     launch: function() {
