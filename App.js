@@ -6,11 +6,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     settingsScope: 'project',
     componentCls: 'app',
     config: {
-        tlAfter: 182,  //Half a year approx
-        tlBack:   30, //How many days before today.
         defaultSettings: {
             showTimeLine: true,
-            hideArchived: true,
+            showReleases: true,
             showFilter: true,
             allowMultiSelect: false,
             onlyDependencies: false,
@@ -31,72 +29,70 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     getSettingsFields: function() {
         var returned = [
-        {
-            name: 'showTimeLine',
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show dates at top',
-            labelAlign: 'top'
-        },
-        {
-            name: 'hideArchived',
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Hide Archived',
-            labelAlign: 'top'
-        },
-        {
-            name: 'allowMultiSelect',
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Enable multiple start items (Note: Page Reload required if you change value)',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show Advanced filter',
-            name: 'showFilter',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Only items with dependencies',
-            name: 'onlyDependencies',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Only Feature dependencies',
-            name: 'lowestDependencies',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show one type only',
-            name: 'oneTypeOnly',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Allow card pop-up on hover',
-            name: 'cardHover',
-            labelAlign: 'top'
-        },{
-            xtype: 'rallydatefield',
-            fieldLabel: 'Start Date',
-            name: 'startDate',
-            labelAlign: 'top'
-        },{
-            xtype: 'rallydatefield',
-            fieldLabel: 'End Date',
-            name: 'endDate',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallynumberfield',
-            fieldLabel: 'Grid bar width',
-            name: 'lineSize',
-            minValue: 15,
-            labelAlign: 'top'
-        }
-        
+            {
+                name: 'showTimeLine',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show dates at top',
+                labelAlign: 'top'
+            },{
+                name: 'showReleases',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show Releases at top',
+                labelAlign: 'top'
+            },
+            {
+                name: 'allowMultiSelect',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Enable multiple start items (Note: Page Reload required if you change value)',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show Advanced filter',
+                name: 'showFilter',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Only items with dependencies',
+                name: 'onlyDependencies',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Only Feature dependencies',
+                name: 'lowestDependencies',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show one type only',
+                name: 'oneTypeOnly',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Allow card pop-up on hover',
+                name: 'cardHover',
+                labelAlign: 'top'
+            },{
+                xtype: 'rallydatefield',
+                fieldLabel: 'Start Date',
+                name: 'startDate',
+                labelAlign: 'top'
+            },{
+                xtype: 'rallydatefield',
+                fieldLabel: 'End Date',
+                name: 'endDate',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallynumberfield',
+                fieldLabel: 'Grid bar width',
+                name: 'lineSize',
+                minValue: 15,
+                labelAlign: 'top'
+            }        
         ];
         return returned;
     },
@@ -104,9 +100,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     itemId: 'rallyApp',
         MIN_COLUMN_WIDTH:   200,        //Looks silly on less than this
-        LOAD_STORE_MAX_RECORDS: 100, //Can blow up the Rally.data.wsapi.filter.Or
-        WARN_STORE_MAX_RECORDS: 300, //Can be slow if you fetch too many
-        _rowHeight: 100,               //Leave space for "World view" text
         STORE_FETCH_FIELD_LIST:
             [
                 'Name',
@@ -209,7 +202,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         //Get all the nodes and the "Unknown" parent virtual nodes
         var nodetree = gApp._createNodeTree(gApp._nodes);
         var svg = d3.select('svg');
-        svg.attr('height', gApp._rowHeight * (nodetree.value + ( gApp.getSetting('showTimeLine')?1:0)));
+        svg.attr('height', gApp._rowHeight * 
+            (nodetree.value + 
+            (gApp.getSetting('showTimeLine')?1:0) +     //Leave space for dates
+            (gApp.getSetting('showReleases')?1:0))      //Leave space for releases
+        );
         //Make surface the size available in the viewport (minus the selectors and margins)
         var rs = this.down('#rootSurface');
         rs.getEl().setHeight(svg.attr('height'));
@@ -235,8 +232,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     _initialiseScale: function() {
 
-       var timebegin = new Date(gApp.getSetting('startDate')) || Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.tlBack);
-       var timeend =  new Date(gApp.getSetting('endDate')) || Ext.Date.add(new Date(), Ext.Date.DAY, gApp.tlAfter);
+       var timebegin = new Date(gApp.getSetting('startDate')) || Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.startDate);
+       var timeend =  new Date(gApp.getSetting('endDate')) || Ext.Date.add(new Date(), Ext.Date.DAY, gApp.endDate);
         gApp._setTimeScaler(timebegin,timeend);
     },
 
@@ -245,7 +242,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .domain([
                 timebegin, timeend
             ])
-            .range([0, parseInt(d3.select('svg').attr('width'))- (gApp._rowHeight + 10)]);
+            .range([0, +d3.select('svg').attr('width') - (gApp._rowHeight + 10)]);
     },
 
     _setAxis: function() {
@@ -292,8 +289,78 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp._addSVGTree();
         gApp._refreshTree();
     },
+
+    _getReleases: function() {
+        var releases = Ext.create('Rally.data.wsapi.Store', {
+            model: 'Release',
+            autoLoad: true,
+            context: {
+                projectScopeDown: false,
+                projectScopeUp: false
+            },
+            filters: [
+                {
+                    property: 'ReleaseDate',
+                    operator: '>',
+                    value: gApp.dateScaler.invert(0)
+                },
+                {
+                    property: 'ReleaseStartDate',
+                    operator: '<',
+                    value: gApp.dateScaler.invert(+d3.select('svg').attr('width'))
+                }
+
+            ],
+            listeners: {
+                load: function(store, records, opts) {
+                    gApp._setReleases(records);
+                }
+            }
+        });
+    },
+
+    _setReleases: function(releases) {
+        var rels = d3.select('svg').selectAll(".releases");
+//        rels.remove();
+        var relGroups = rels.data(releases)
+            .enter().append('g')
+            .attr('class', 'releases');
+
+        relGroups.attr('transform', function(rel) {
+            rel.x = gApp.dateScaler(new Date(rel.get('ReleaseStartDate')));
+            rel.x = (rel.x<0?0:rel.x) ;
+            return 'translate(' + (rel.x + gApp._rowHeight) + ',0)';}   //Move over by 2px and make 2px smaller in width below
+        );
+        relGroups.append('rect')
+            .attr('y', gApp._rowHeight)
+            .attr('height', gApp._rowHeight)
+            .attr('width', function(rel) {
+                var end = gApp.dateScaler(new Date(rel.get('ReleaseDate')));
+                end = (d3.select('svg').attr('width')<end)?d3.select('svg').attr('width'):end;
+                rel.width = end - rel.x;
+                return rel.width<4?2:rel.width-2;
+            })
+            .attr('class', function( rel, idx, arr) {
+                return 'q' + idx + '-' + (arr.length%5);
+            });
+        relGroups.append('text')
+            .attr('x', function(rel) { return rel.width/2;})
+            .attr('y', function(rel) {
+                return (gApp._rowHeight/2) +
+                    (gApp.getSetting('showTimeLine')?gApp._rowHeight:0);
+                })
+            .attr('class', 'normalText')
+            .text( function(rel) {
+                return (rel.width > 80)? rel.get('Name'): '';
+            })
+            .style("text-anchor", 'middle')
+            .attr('alignment-baseline', 'central');
+
+    },
+
     _rescaledStart: function() {
         gApp._setAxis();
+        if (gApp.getSetting('showReleases')) { gApp._getReleases(); }
         gApp._zoomedStart();
     },
     _startTreeAgain: function()
@@ -365,7 +432,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
 
     _getSVGHeight: function() {
-        return parseInt(d3.select('svg').attr('height')) - (gApp.getSetting('showTimeLine')?gApp._rowHeight:0);
+        return parseInt(d3.select('svg').attr('height')) - 
+            (gApp.getSetting('showTimeLine')?gApp._rowHeight:0) -
+            (gApp.getSetting('showReleases')?gApp._rowHeight:0);
     },
 
     _itemMenu: function(d) {
@@ -463,7 +532,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
         node.append('text')
             .attr('y', gApp._rowHeight/2)  //Should follow point size of font
-            .attr('x', gApp._rowHeight/2)
+            .attr('x', gApp._rowHeight/4)
             .attr('alignment-baseline', 'central')
             .text('V')
             .attr('class', function(d) {
@@ -527,7 +596,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                 //Stuff without end point
                                 var source = d3.select('#rect-'+d.data.Name);
                                 var x0 = source.node().getCTM().e + source.node().getBBox().width - gApp._rowHeight;
-                                var y0 = source.node().getCTM().f - gApp._rowHeight/2;
+                                var y0 = source.node().getCTM().f + gApp._rowHeight/2 - 
+                                    ((gApp.getSetting('showReleases')?gApp._rowHeight:0) +
+                                     (gApp.getSetting('showTimeLine')?gApp._rowHeight:0));
 
                                 if (!e) { 
                                     zClass += 'textBlink';
@@ -557,7 +628,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                 //Stuff that needs endpoint
                                 var target = d3.select('#rect-'+e.data.Name);
                                 var x1 = target.node().getCTM().e - gApp._rowHeight;
-                                var y1 = target.node().getCTM().f - (gApp._rowHeight/2);
+                                var y1 = target.node().getCTM().f + gApp._rowHeight/2 - 
+                                    ((gApp.getSetting('showReleases')?gApp._rowHeight:0) +
+                                     (gApp.getSetting('showTimeLine')?gApp._rowHeight:0));
 
                                 zoomTree.append('circle')
                                     .attr('cx', x1)
@@ -620,7 +693,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _checkSchedule: function(d, start, end ) {
         var childStart = (start === undefined)? d.data.record.get('PlannedStartDate') : start;
         var childEnd = (end === undefined)? d.data.record.get('PlannedEndDate') : end;
-        if ( d.parent.data.record.ObjectID) {
+        if ( d.parent.data.record.data.ObjectID) {
           return (childEnd > d.parent.data.record.get('PlannedEndDate')) ||
               (childStart < d.parent.data.record.get('PlannedStartDate'));
         } else {
@@ -1053,7 +1126,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     });
                     changeStore.add(gApp._changedItems);
                     _.each(changeStore.getRecords(), function (record) {
-                        record.save();
+                        record.save().then ( {
+                            success: function() {
+                                Rally.environment.getMessageBus().publish(Rally.Message.objectUpdate, record, ['PlannedStartDate', 'PlannedEndDate']);
+                                
+                            }
+                        });
                     });
                     gApp.down('#dropRecords').disable();
                     this.disable();
@@ -1111,7 +1189,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         if (gApp.getSetting('oneTypeOnly')) {
             gApp._fetchOneType();
         } else {
-            gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+            if ( gApp.down('#itemSelector').getRecord() !== false ) {
+                gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+            }
         }
     },
 
@@ -1250,13 +1330,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             
             filters: []
         };
-        if (gApp.getSetting('hideArchived')) {
-            collectionConfig.filters.push({
-                property: 'Archived',
-                operator: '=',
-                value: false
-            });
-        }
 
         if (lowest) { //Only for lowest level item type)
             if(gApp.getSetting('showFilter') && gApp.advFilters && gApp.advFilters.length > 0){
@@ -1310,6 +1383,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var nodes = [];
         //Push them into an array we can reconfigure
         _.each(data, function(record) {
+            if (record.data._ref === 'root') return null;
             var localNode = (gApp.getContext().getProjectRef() === record.get('Project')._ref);
             nodes.push({'Name': record.get('FormattedID'), 'record': record, 'local': localNode, 'dependencies': []});
         });
@@ -1452,7 +1526,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _addSVGTree: function() {
         var svg = d3.select('svg');
         svg.append("g")        
-            .attr("transform","translate(" + gApp._rowHeight + "," +  (gApp.getSetting('showTimeLine')?gApp._rowHeight:0) + ")")
+            .attr("transform","translate(" + gApp._rowHeight + "," +  
+                ((gApp.getSetting('showTimeLine')?gApp._rowHeight:0) + (gApp.getSetting('showReleases')?gApp._rowHeight:0)) + ")")
             .attr("id","zoomTree")
             .attr('width', +svg.attr('width') - gApp._rowHeight)
             .attr('height', +svg.attr('height'))
@@ -1475,6 +1550,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         if (d3.select("#staticTree")) {
             d3.select("#staticTree").remove();
         }
+        d3.select('svg').selectAll(".releases").remove();
+
         //Go through all nodes and kill the cards
 
     },

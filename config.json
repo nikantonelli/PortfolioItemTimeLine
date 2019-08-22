@@ -1,5 +1,5 @@
 {
-    "name": "My Portfolio Item Tree",
+    "name": "PI Timeline2",
     "className": "Nik.apps.PortfolioItemTimeline.app",
     "server": "https://rally1.rallydev.com",
     "sdk": "2.1",

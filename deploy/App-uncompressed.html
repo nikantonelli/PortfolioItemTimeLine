@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My Portfolio Item Tree</title>
+    <title>PI Timeline2</title>
 
-    <script type="text/javascript" src="/apps/2.1/sdk-debug.js"></script>
+    <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
 
     <script type="text/javascript">
         Rally.onReady(function () {
@@ -15,11 +15,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     settingsScope: 'project',
     componentCls: 'app',
     config: {
-        tlAfter: 182,  //Half a year approx
-        tlBack:   30, //How many days before today.
         defaultSettings: {
             showTimeLine: true,
-            hideArchived: true,
+            showReleases: true,
             showFilter: true,
             allowMultiSelect: false,
             onlyDependencies: false,
@@ -40,72 +38,70 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     getSettingsFields: function() {
         var returned = [
-        {
-            name: 'showTimeLine',
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show dates at top',
-            labelAlign: 'top'
-        },
-        {
-            name: 'hideArchived',
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Hide Archived',
-            labelAlign: 'top'
-        },
-        {
-            name: 'allowMultiSelect',
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Enable multiple start items (Note: Page Reload required if you change value)',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show Advanced filter',
-            name: 'showFilter',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Only items with dependencies',
-            name: 'onlyDependencies',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Only Feature dependencies',
-            name: 'lowestDependencies',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show one type only',
-            name: 'oneTypeOnly',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Allow card pop-up on hover',
-            name: 'cardHover',
-            labelAlign: 'top'
-        },{
-            xtype: 'rallydatefield',
-            fieldLabel: 'Start Date',
-            name: 'startDate',
-            labelAlign: 'top'
-        },{
-            xtype: 'rallydatefield',
-            fieldLabel: 'End Date',
-            name: 'endDate',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallynumberfield',
-            fieldLabel: 'Grid bar width',
-            name: 'lineSize',
-            minValue: 15,
-            labelAlign: 'top'
-        }
-        
+            {
+                name: 'showTimeLine',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show dates at top',
+                labelAlign: 'top'
+            },{
+                name: 'showReleases',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show Releases at top',
+                labelAlign: 'top'
+            },
+            {
+                name: 'allowMultiSelect',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Enable multiple start items (Note: Page Reload required if you change value)',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show Advanced filter',
+                name: 'showFilter',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Only items with dependencies',
+                name: 'onlyDependencies',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Only Feature dependencies',
+                name: 'lowestDependencies',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show one type only',
+                name: 'oneTypeOnly',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Allow card pop-up on hover',
+                name: 'cardHover',
+                labelAlign: 'top'
+            },{
+                xtype: 'rallydatefield',
+                fieldLabel: 'Start Date',
+                name: 'startDate',
+                labelAlign: 'top'
+            },{
+                xtype: 'rallydatefield',
+                fieldLabel: 'End Date',
+                name: 'endDate',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallynumberfield',
+                fieldLabel: 'Grid bar width',
+                name: 'lineSize',
+                minValue: 15,
+                labelAlign: 'top'
+            }        
         ];
         return returned;
     },
@@ -113,9 +109,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     itemId: 'rallyApp',
         MIN_COLUMN_WIDTH:   200,        //Looks silly on less than this
-        LOAD_STORE_MAX_RECORDS: 100, //Can blow up the Rally.data.wsapi.filter.Or
-        WARN_STORE_MAX_RECORDS: 300, //Can be slow if you fetch too many
-        _rowHeight: 100,               //Leave space for "World view" text
         STORE_FETCH_FIELD_LIST:
             [
                 'Name',
@@ -218,7 +211,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         //Get all the nodes and the "Unknown" parent virtual nodes
         var nodetree = gApp._createNodeTree(gApp._nodes);
         var svg = d3.select('svg');
-        svg.attr('height', gApp._rowHeight * (nodetree.value + ( gApp.getSetting('showTimeLine')?1:0)));
+        svg.attr('height', gApp._rowHeight * 
+            (nodetree.value + 
+            (gApp.getSetting('showTimeLine')?1:0) +     //Leave space for dates
+            (gApp.getSetting('showReleases')?1:0))      //Leave space for releases
+        );
         //Make surface the size available in the viewport (minus the selectors and margins)
         var rs = this.down('#rootSurface');
         rs.getEl().setHeight(svg.attr('height'));
@@ -244,8 +241,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     _initialiseScale: function() {
 
-       var timebegin = new Date(gApp.getSetting('startDate')) || Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.tlBack);
-       var timeend =  new Date(gApp.getSetting('endDate')) || Ext.Date.add(new Date(), Ext.Date.DAY, gApp.tlAfter);
+       var timebegin = new Date(gApp.getSetting('startDate')) || Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.startDate);
+       var timeend =  new Date(gApp.getSetting('endDate')) || Ext.Date.add(new Date(), Ext.Date.DAY, gApp.endDate);
         gApp._setTimeScaler(timebegin,timeend);
     },
 
@@ -254,7 +251,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .domain([
                 timebegin, timeend
             ])
-            .range([0, parseInt(d3.select('svg').attr('width'))- (gApp._rowHeight + 10)]);
+            .range([0, +d3.select('svg').attr('width') - (gApp._rowHeight + 10)]);
     },
 
     _setAxis: function() {
@@ -301,8 +298,78 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp._addSVGTree();
         gApp._refreshTree();
     },
+
+    _getReleases: function() {
+        var releases = Ext.create('Rally.data.wsapi.Store', {
+            model: 'Release',
+            autoLoad: true,
+            context: {
+                projectScopeDown: false,
+                projectScopeUp: false
+            },
+            filters: [
+                {
+                    property: 'ReleaseDate',
+                    operator: '>',
+                    value: gApp.dateScaler.invert(0)
+                },
+                {
+                    property: 'ReleaseStartDate',
+                    operator: '<',
+                    value: gApp.dateScaler.invert(+d3.select('svg').attr('width'))
+                }
+
+            ],
+            listeners: {
+                load: function(store, records, opts) {
+                    gApp._setReleases(records);
+                }
+            }
+        });
+    },
+
+    _setReleases: function(releases) {
+        var rels = d3.select('svg').selectAll(".releases");
+//        rels.remove();
+        var relGroups = rels.data(releases)
+            .enter().append('g')
+            .attr('class', 'releases');
+
+        relGroups.attr('transform', function(rel) {
+            rel.x = gApp.dateScaler(new Date(rel.get('ReleaseStartDate')));
+            rel.x = (rel.x<0?0:rel.x) ;
+            return 'translate(' + (rel.x + gApp._rowHeight) + ',0)';}   //Move over by 2px and make 2px smaller in width below
+        );
+        relGroups.append('rect')
+            .attr('y', gApp._rowHeight)
+            .attr('height', gApp._rowHeight)
+            .attr('width', function(rel) {
+                var end = gApp.dateScaler(new Date(rel.get('ReleaseDate')));
+                end = (d3.select('svg').attr('width')<end)?d3.select('svg').attr('width'):end;
+                rel.width = end - rel.x;
+                return rel.width<4?2:rel.width-2;
+            })
+            .attr('class', function( rel, idx, arr) {
+                return 'q' + idx + '-' + (arr.length%5);
+            });
+        relGroups.append('text')
+            .attr('x', function(rel) { return rel.width/2;})
+            .attr('y', function(rel) {
+                return (gApp._rowHeight/2) +
+                    (gApp.getSetting('showTimeLine')?gApp._rowHeight:0);
+                })
+            .attr('class', 'normalText')
+            .text( function(rel) {
+                return (rel.width > 80)? rel.get('Name'): '';
+            })
+            .style("text-anchor", 'middle')
+            .attr('alignment-baseline', 'central');
+
+    },
+
     _rescaledStart: function() {
         gApp._setAxis();
+        if (gApp.getSetting('showReleases')) { gApp._getReleases(); }
         gApp._zoomedStart();
     },
     _startTreeAgain: function()
@@ -374,7 +441,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
 
     _getSVGHeight: function() {
-        return parseInt(d3.select('svg').attr('height')) - (gApp.getSetting('showTimeLine')?gApp._rowHeight:0);
+        return parseInt(d3.select('svg').attr('height')) - 
+            (gApp.getSetting('showTimeLine')?gApp._rowHeight:0) -
+            (gApp.getSetting('showReleases')?gApp._rowHeight:0);
     },
 
     _itemMenu: function(d) {
@@ -472,7 +541,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
         node.append('text')
             .attr('y', gApp._rowHeight/2)  //Should follow point size of font
-            .attr('x', gApp._rowHeight/2)
+            .attr('x', gApp._rowHeight/4)
             .attr('alignment-baseline', 'central')
             .text('V')
             .attr('class', function(d) {
@@ -536,7 +605,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                 //Stuff without end point
                                 var source = d3.select('#rect-'+d.data.Name);
                                 var x0 = source.node().getCTM().e + source.node().getBBox().width - gApp._rowHeight;
-                                var y0 = source.node().getCTM().f - gApp._rowHeight/2;
+                                var y0 = source.node().getCTM().f + gApp._rowHeight/2 - 
+                                    ((gApp.getSetting('showReleases')?gApp._rowHeight:0) +
+                                     (gApp.getSetting('showTimeLine')?gApp._rowHeight:0));
 
                                 if (!e) { 
                                     zClass += 'textBlink';
@@ -566,7 +637,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                 //Stuff that needs endpoint
                                 var target = d3.select('#rect-'+e.data.Name);
                                 var x1 = target.node().getCTM().e - gApp._rowHeight;
-                                var y1 = target.node().getCTM().f - (gApp._rowHeight/2);
+                                var y1 = target.node().getCTM().f + gApp._rowHeight/2 - 
+                                    ((gApp.getSetting('showReleases')?gApp._rowHeight:0) +
+                                     (gApp.getSetting('showTimeLine')?gApp._rowHeight:0));
 
                                 zoomTree.append('circle')
                                     .attr('cx', x1)
@@ -629,7 +702,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _checkSchedule: function(d, start, end ) {
         var childStart = (start === undefined)? d.data.record.get('PlannedStartDate') : start;
         var childEnd = (end === undefined)? d.data.record.get('PlannedEndDate') : end;
-        if ( d.parent.data.record.ObjectID) {
+        if ( d.parent.data.record.data.ObjectID) {
           return (childEnd > d.parent.data.record.get('PlannedEndDate')) ||
               (childStart < d.parent.data.record.get('PlannedStartDate'));
         } else {
@@ -1062,7 +1135,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     });
                     changeStore.add(gApp._changedItems);
                     _.each(changeStore.getRecords(), function (record) {
-                        record.save();
+                        record.save().then ( {
+                            success: function() {
+                                Rally.environment.getMessageBus().publish(Rally.Message.objectUpdate, record, ['PlannedStartDate', 'PlannedEndDate']);
+                                
+                            }
+                        });
                     });
                     gApp.down('#dropRecords').disable();
                     this.disable();
@@ -1120,7 +1198,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         if (gApp.getSetting('oneTypeOnly')) {
             gApp._fetchOneType();
         } else {
-            gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+            if ( gApp.down('#itemSelector').getRecord() !== false ) {
+                gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+            }
         }
     },
 
@@ -1259,13 +1339,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             
             filters: []
         };
-        if (gApp.getSetting('hideArchived')) {
-            collectionConfig.filters.push({
-                property: 'Archived',
-                operator: '=',
-                value: false
-            });
-        }
 
         if (lowest) { //Only for lowest level item type)
             if(gApp.getSetting('showFilter') && gApp.advFilters && gApp.advFilters.length > 0){
@@ -1319,6 +1392,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var nodes = [];
         //Push them into an array we can reconfigure
         _.each(data, function(record) {
+            if (record.data._ref === 'root') return null;
             var localNode = (gApp.getContext().getProjectRef() === record.get('Project')._ref);
             nodes.push({'Name': record.get('FormattedID'), 'record': record, 'local': localNode, 'dependencies': []});
         });
@@ -1461,7 +1535,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _addSVGTree: function() {
         var svg = d3.select('svg');
         svg.append("g")        
-            .attr("transform","translate(" + gApp._rowHeight + "," +  (gApp.getSetting('showTimeLine')?gApp._rowHeight:0) + ")")
+            .attr("transform","translate(" + gApp._rowHeight + "," +  
+                ((gApp.getSetting('showTimeLine')?gApp._rowHeight:0) + (gApp.getSetting('showReleases')?gApp._rowHeight:0)) + ")")
             .attr("id","zoomTree")
             .attr('width', +svg.attr('width') - gApp._rowHeight)
             .attr('height', +svg.attr('height'))
@@ -1484,6 +1559,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         if (d3.select("#staticTree")) {
             d3.select("#staticTree").remove();
         }
+        d3.select('svg').selectAll(".releases").remove();
+
         //Go through all nodes and kill the cards
 
     },
@@ -18486,7 +18563,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 
             Rally.launchApp('Nik.apps.PortfolioItemTimeline.app', {
-                name:"My Portfolio Item Tree",
+                name:"PI Timeline2",
                 parentRepos:"",
                 version:"0.1.1"
             });
@@ -18589,132 +18666,154 @@ circle.no--errors {
   border: black solid 1px;
   font-weight: bold;
 }
+.releases {
+  font-size: 1em;
+  font-family: NotoSans,Helvetica,Arial;
+}
+.q0-1 {
+  fill: #2b8cbe;
+}
+.q0-2 {
+  fill: #2b8cbe;
+}
+.q1-2 {
+  fill: #a6bddb;
+}
 .q0-3 {
-  fill: #fc8d59;
+  fill: #ece7f2;
 }
 .q1-3 {
-  fill: #ffffbf;
+  fill: #a6bddb;
 }
 .q2-3 {
-  fill: #91bfdb;
+  fill: #2b8cbe;
 }
 .q0-4 {
-  fill: #d7191c;
+  fill: #f1eef6;
 }
 .q1-4 {
-  fill: #fdae61;
+  fill: #bdc9e1;
 }
 .q2-4 {
-  fill: #abd9e9;
+  fill: #74a9cf;
 }
 .q3-4 {
-  fill: #2c7bb6;
+  fill: #0570b0;
 }
 .q0-5 {
-  fill: #d7191c;
+  fill: #f1eef6;
 }
 .q1-5 {
-  fill: #fdae61;
+  fill: #bdc9e1;
 }
 .q2-5 {
-  fill: #ffffbf;
+  fill: #74a9cf;
 }
 .q3-5 {
-  fill: #abd9e9;
+  fill: #2b8cbe;
 }
 .q4-5 {
-  fill: #2c7bb6;
+  fill: #045a8d;
 }
 .q0-6 {
-  fill: #d73027;
+  fill: #f1eef6;
 }
 .q1-6 {
-  fill: #fc8d59;
+  fill: #d0d1e6;
 }
 .q2-6 {
-  fill: #fee090;
+  fill: #a6bddb;
 }
 .q3-6 {
-  fill: #e0f3f8;
+  fill: #74a9cf;
 }
 .q4-6 {
-  fill: #91bfdb;
+  fill: #2b8cbe;
 }
 .q5-6 {
-  fill: #4575b4;
+  fill: #045a8d;
 }
 .q0-7 {
-  fill: #d73027;
+  fill: #f1eef6;
 }
 .q1-7 {
-  fill: #fc8d59;
+  fill: #d0d1e6;
 }
 .q2-7 {
-  fill: #fee090;
+  fill: #a6bddb;
 }
 .q3-7 {
-  fill: #ffffbf;
+  fill: #74a9cf;
 }
 .q4-7 {
-  fill: #e0f3f8;
+  fill: #3690c0;
 }
 .q5-7 {
-  fill: #91bfdb;
+  fill: #0570b0;
 }
 .q6-7 {
-  fill: #4575b4;
+  fill: #034e7b;
 }
 .q0-8 {
-  fill: #d73027;
+  fill: #fff7fb;
 }
 .q1-8 {
-  fill: #f46d43;
+  fill: #ece7f2;
 }
 .q2-8 {
-  fill: #fdae61;
+  fill: #d0d1e6;
 }
 .q3-8 {
-  fill: #fee090;
+  fill: #a6bddb;
 }
 .q4-8 {
-  fill: #e0f3f8;
+  fill: #74a9cf;
 }
 .q5-8 {
-  fill: #abd9e9;
+  fill: #3690c0;
 }
 .q6-8 {
-  fill: #74add1;
+  fill: #0570b0;
 }
 .q7-8 {
-  fill: #4575b4;
+  fill: #034e7b;
 }
 .q0-9 {
-  fill: #d73027;
+  fill: #fff7fb;
 }
 .q1-9 {
-  fill: #f46d43;
+  fill: #ece7f2;
 }
 .q2-9 {
-  fill: #fdae61;
+  fill: #d0d1e6;
 }
 .q3-9 {
-  fill: #fee090;
+  fill: #a6bddb;
 }
 .q4-9 {
-  fill: #ffffbf;
+  fill: #74a9cf;
 }
 .q5-9 {
-  fill: #e0f3f8;
+  fill: #3690c0;
 }
 .q6-9 {
-  fill: #abd9e9;
+  fill: #0570b0;
 }
 .q7-9 {
-  fill: #74add1;
+  fill: #045a8d;
 }
 .q8-9 {
-  fill: #4575b4;
+  fill: #023858;
 }
+/* 
+ .q0-3{fill:rgb(252,141,89)}  .q1-3{fill:rgb(255,255,191)}  .q2-3{fill:rgb(145,191,219)}
+ .q0-4{fill:rgb(215,25,28)}  .q1-4{fill:rgb(253,174,97)}  .q2-4{fill:rgb(171,217,233)}  .q3-4{fill:rgb(44,123,182)}
+ .q0-5{fill:rgb(215,25,28)}  .q1-5{fill:rgb(253,174,97)}  .q2-5{fill:rgb(255,255,191)}  .q3-5{fill:rgb(171,217,233)}  .q4-5{fill:rgb(44,123,182)}
+ .q0-6{fill:rgb(215,48,39)}  .q1-6{fill:rgb(252,141,89)}  .q2-6{fill:rgb(254,224,144)}  .q3-6{fill:rgb(224,243,248)}  .q4-6{fill:rgb(145,191,219)}  .q5-6{fill:rgb(69,117,180)}
+ .q0-7{fill:rgb(215,48,39)}  .q1-7{fill:rgb(252,141,89)}  .q2-7{fill:rgb(254,224,144)}  .q3-7{fill:rgb(255,255,191)}  .q4-7{fill:rgb(224,243,248)}  .q5-7{fill:rgb(145,191,219)}  .q6-7{fill:rgb(69,117,180)}
+ .q0-8{fill:rgb(215,48,39)}  .q1-8{fill:rgb(244,109,67)}  .q2-8{fill:rgb(253,174,97)}  .q3-8{fill:rgb(254,224,144)}  .q4-8{fill:rgb(224,243,248)}  .q5-8{fill:rgb(171,217,233)}  .q6-8{fill:rgb(116,173,209)}  .q7-8{fill:rgb(69,117,180)}
+ .q0-9{fill:rgb(215,48,39)}  .q1-9{fill:rgb(244,109,67)}  .q2-9{fill:rgb(253,174,97)}  .q3-9{fill:rgb(254,224,144)}  .q4-9{fill:rgb(255,255,191)}  .q5-9{fill:rgb(224,243,248)}  .q6-9{fill:rgb(171,217,233)}  .q7-9{fill:rgb(116,173,209)}  .q8-9{fill:rgb(69,117,180)} 
+ */
 @keyframes textBlink {
   50% {
     opacity: 0.5;

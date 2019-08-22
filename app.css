@@ -111,13 +111,67 @@ circle.no--errors {
   font-weight: bold;
 }
 
-.q0-3{fill:rgb(252,141,89)}  .q1-3{fill:rgb(255,255,191)}  .q2-3{fill:rgb(145,191,219)}
+.releases {
+    font-size: 1em;
+  font-family: NotoSans,Helvetica,Arial;
+
+}
+.q0-1{fill:rgb(43,140,190)}
+.q0-2{fill:rgb(43,140,190)}
+.q1-2{fill:rgb(166,189,219)} 
+.q0-3{fill:rgb(236,231,242)} 
+.q1-3{fill:rgb(166,189,219)} 
+.q2-3{fill:rgb(43,140,190)}
+.q0-4{fill:rgb(241,238,246)} 
+.q1-4{fill:rgb(189,201,225)} 
+.q2-4{fill:rgb(116,169,207)} 
+.q3-4{fill:rgb(5,112,176)}
+.q0-5{fill:rgb(241,238,246)} 
+.q1-5{fill:rgb(189,201,225)} 
+.q2-5{fill:rgb(116,169,207)} 
+.q3-5{fill:rgb(43,140,190)} 
+.q4-5{fill:rgb(4,90,141)}
+.q0-6{fill:rgb(241,238,246)} 
+.q1-6{fill:rgb(208,209,230)} 
+.q2-6{fill:rgb(166,189,219)} 
+.q3-6{fill:rgb(116,169,207)} 
+.q4-6{fill:rgb(43,140,190)}
+.q5-6{fill:rgb(4,90,141)}
+.q0-7{fill:rgb(241,238,246)} 
+.q1-7{fill:rgb(208,209,230)} 
+.q2-7{fill:rgb(166,189,219)} 
+.q3-7{fill:rgb(116,169,207)} 
+.q4-7{fill:rgb(54,144,192)} 
+.q5-7{fill:rgb(5,112,176)} 
+.q6-7{fill:rgb(3,78,123)}
+.q0-8{fill:rgb(255,247,251)}
+.q1-8{fill:rgb(236,231,242)} 
+.q2-8{fill:rgb(208,209,230)} 
+.q3-8{fill:rgb(166,189,219)} 
+.q4-8{fill:rgb(116,169,207)} 
+.q5-8{fill:rgb(54,144,192)} 
+.q6-8{fill:rgb(5,112,176)} 
+.q7-8{fill:rgb(3,78,123)}
+.q0-9{fill:rgb(255,247,251)} 
+.q1-9{fill:rgb(236,231,242)} 
+.q2-9{fill:rgb(208,209,230)} 
+.q3-9{fill:rgb(166,189,219)} 
+.q4-9{fill:rgb(116,169,207)} 
+.q5-9{fill:rgb(54,144,192)} 
+.q6-9{fill:rgb(5,112,176)} 
+.q7-9{fill:rgb(4,90,141)} 
+.q8-9{fill:rgb(2,56,88)}
+
+
+/* 
+ .q0-3{fill:rgb(252,141,89)}  .q1-3{fill:rgb(255,255,191)}  .q2-3{fill:rgb(145,191,219)}
  .q0-4{fill:rgb(215,25,28)}  .q1-4{fill:rgb(253,174,97)}  .q2-4{fill:rgb(171,217,233)}  .q3-4{fill:rgb(44,123,182)}
  .q0-5{fill:rgb(215,25,28)}  .q1-5{fill:rgb(253,174,97)}  .q2-5{fill:rgb(255,255,191)}  .q3-5{fill:rgb(171,217,233)}  .q4-5{fill:rgb(44,123,182)}
  .q0-6{fill:rgb(215,48,39)}  .q1-6{fill:rgb(252,141,89)}  .q2-6{fill:rgb(254,224,144)}  .q3-6{fill:rgb(224,243,248)}  .q4-6{fill:rgb(145,191,219)}  .q5-6{fill:rgb(69,117,180)}
  .q0-7{fill:rgb(215,48,39)}  .q1-7{fill:rgb(252,141,89)}  .q2-7{fill:rgb(254,224,144)}  .q3-7{fill:rgb(255,255,191)}  .q4-7{fill:rgb(224,243,248)}  .q5-7{fill:rgb(145,191,219)}  .q6-7{fill:rgb(69,117,180)}
  .q0-8{fill:rgb(215,48,39)}  .q1-8{fill:rgb(244,109,67)}  .q2-8{fill:rgb(253,174,97)}  .q3-8{fill:rgb(254,224,144)}  .q4-8{fill:rgb(224,243,248)}  .q5-8{fill:rgb(171,217,233)}  .q6-8{fill:rgb(116,173,209)}  .q7-8{fill:rgb(69,117,180)}
- .q0-9{fill:rgb(215,48,39)}  .q1-9{fill:rgb(244,109,67)}  .q2-9{fill:rgb(253,174,97)}  .q3-9{fill:rgb(254,224,144)}  .q4-9{fill:rgb(255,255,191)}  .q5-9{fill:rgb(224,243,248)}  .q6-9{fill:rgb(171,217,233)}  .q7-9{fill:rgb(116,173,209)}  .q8-9{fill:rgb(69,117,180)}
+ .q0-9{fill:rgb(215,48,39)}  .q1-9{fill:rgb(244,109,67)}  .q2-9{fill:rgb(253,174,97)}  .q3-9{fill:rgb(254,224,144)}  .q4-9{fill:rgb(255,255,191)}  .q5-9{fill:rgb(224,243,248)}  .q6-9{fill:rgb(171,217,233)}  .q7-9{fill:rgb(116,173,209)}  .q8-9{fill:rgb(69,117,180)} 
+ */
 
  @keyframes textBlink {
   50% {
