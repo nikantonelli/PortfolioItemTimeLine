@@ -26,7 +26,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
             lineSize: 20,
             lowestDependencies: true,
-            cardHover: true
+            cardHover: true,
+            pointsOrCount: false
         }
     },
 
@@ -75,6 +76,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             },
             {
                 xtype: 'rallycheckboxfield',
+                fieldLabel: 'Colour by Story Count',
+                name: 'pointsOrCount',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show one type only',
                 name: 'oneTypeOnly',
                 labelAlign: 'top'
@@ -111,38 +118,42 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         MIN_COLUMN_WIDTH:   200,        //Looks silly on less than this
         STORE_FETCH_FIELD_LIST:
             [
-                'Name',
-                'FormattedID',
-                'Parent',
-                'DragAndDropRank',
-                'Children',
-                'ObjectID',
-                'Project',
-                'DisplayColor',
-                'Owner',
+                'ActualEndDate',
+                'ActualStartDate',
                 'Blocked',
                 'BlockedReason',
-                'Ready',
-                'Tags',
-                'Workspace',
-                'RevisionHistory',
+                'Children',
                 'CreationDate',
-                'PercentDoneByStoryCount',
-                'PercentDoneByStoryPlanEstimate',
-                'PredecessorsAndSuccessors',
-                'State',
-                'PreliminaryEstimate',
                 'Description',
-                'Notes',
-                'Predecessors',
-                'Successors',
-                'OrderIndex',   //Used to get the State field order index
-                'PortfolioItemType',
-                'Ordinal',
-                'Release',
+                'DisplayColor',
+                'DragAndDropRank',
+                'FormattedID',
                 'Iteration',
                 'Milestones',
-                //Customer specific after here. Delete as appropriate
+                'Name',
+                'Notes',
+                'ObjectID',
+                'OrderIndex', 
+                'Ordinal',
+                'Owner',
+                'Parent',
+                'PercentDoneByStoryCount',
+                'PercentDoneByStoryPlanEstimate',
+                'PlannedEndDate',
+                'PlannedStartDate',
+                'PortfolioItemType',
+                'Predecessors',
+                'PredecessorsAndSuccessors',
+                'PreliminaryEstimate',
+                'Project',
+                'Ready',
+                'Release',
+                'RevisionHistory',
+                'State',
+                'Successors',
+                'Tags',
+                'Workspace',
+                                //Customer specific after here. Delete as appropriate
                 // 'c_ProjectIDOBN',
                 // 'c_QRWP',
                 // 'c_ProgressUpdate',
@@ -480,6 +491,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
         var svgWidth = parseInt(d3.select('svg').attr('width')) - gApp._rowHeight;
         var nodetree = gApp._nodeTree;
+        var healthField = gApp.getSetting('pointsOrCount')?'PercentDoneByStoryCount':'PercentDoneByStoryPlanEstimate'
 
         var partition = d3.partition();
 
@@ -523,13 +535,15 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
                 defs.append('stop')
                 .attr('offset', function(d) {
-                    return (d.data.record.get('PercentDoneByStoryPlanEstimate')*100).toString() + "%";
+                    return (d.data.record.get(healthField)*100).toString() + "%";
                 })
-                .attr('stop-color', function(d) { return gApp.colours[d.depth+1]; });
+                .attr('stop-color', function(d) { 
+                    return gApp.calculateHealthColorForPortfolioItemData(d.data.record.data, healthField ); 
+                });
 
                 defs.append('stop')
                 .attr('offset', function(d) {
-                    return (d.data.record.get('PercentDoneByStoryPlanEstimate')*100).toString() + "%";
+                    return (d.data.record.get(healthField)*100).toString() + "%";
                 })
                 .attr('stop-color', "#fff");
                 
@@ -1573,6 +1587,20 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .attr("transform","translate(0,0)")
             .attr('width', gApp._rowHeight)
             .attr("id","staticTree");
+        var todayPos = gApp.dateScaler(new Date());
+        if ((todayPos > 0) && (todayPos < svg.attr('width'))){
+            svg.append('line')
+                .attr('x1',todayPos + gApp._rowHeight)
+                .attr('y1', 0)
+                .attr('x2', todayPos + gApp._rowHeight)
+                .attr('y2', svg.attr('height'))
+                .attr('class', 'todaysDate');
+            svg.append('circle')
+                .attr('cx',todayPos + gApp._rowHeight)
+                .attr('cy', 2)
+                .attr('r', 2)
+                .attr('class', 'todaysDate');
+        }
     },
 
     _removeSVGTree: function() {
@@ -1591,6 +1619,102 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     redrawNodeTree: function() {
         gApp._removeSVGTree();
         gApp._enterMainApp();
+    },
+
+    //Borrowed from sdk-debug.js
+    calculateHealthColor:function(config) {
+        var colors = Rally.util.HealthColorCalculator.colors;
+
+        var percentComplete = config.percentComplete * 100;
+
+        //turn dates into days since epoch, so we don't have to do date math
+        //also round start date to the beginning of the day, and end date to the end of the day
+
+        var millisecondsInDay = 86400000;
+
+        var startDate = config.startDate;
+        var endDate = config.endDate;
+
+        if(Ext.isString(startDate)){
+            startDate = new Date(Date.parse(startDate));
+        }
+        if(Ext.isString(endDate)){
+            endDate = new Date(Date.parse(endDate));
+        }
+
+        var startDay = startDate.getTime() / millisecondsInDay;
+        startDay = Math.floor(startDay);
+        var endDay = endDate.getTime() / millisecondsInDay;
+        endDay = Math.ceil(endDay) - 0.01;
+
+        var asOfDay = config.asOfDate.getTime() / millisecondsInDay;
+
+        var defaultConfig = {
+            acceptanceStartDelay:  (endDay - startDay) * 0.2,
+            warningDelay:  (endDay - startDay) * 0.2,
+            inProgress: percentComplete > 0
+        };
+
+        config = Ext.applyIf(Ext.clone(config), defaultConfig);
+
+        // Special cases
+        if (asOfDay < startDay) {
+            return colors.white;
+        }
+
+        if ((asOfDay >= startDay) &&
+            (asOfDay <= (startDay + config.acceptanceStartDelay)) &&
+            (! config.inProgress)) {
+            return colors.green;
+        }
+
+        if (asOfDay >= endDay) {
+            if (percentComplete >= 100.0) {
+                return colors.gray;
+            } else {
+                return colors.red;
+            }
+        }
+
+        // Red
+        var redXIntercept = startDay + config.acceptanceStartDelay + config.warningDelay;
+        var redSlope = 100.0 / (endDay - redXIntercept);
+        var redYIntercept = -1.0 * redXIntercept * redSlope;
+        var redThreshold = redSlope * asOfDay + redYIntercept;
+        if (percentComplete < redThreshold) {
+            return colors.red;
+        }
+
+        // Yellow
+        var yellowXIntercept = startDay + config.acceptanceStartDelay;
+        var yellowSlope = 100 / (endDay - yellowXIntercept);
+        var yellowYIntercept = -1.0 * yellowXIntercept * yellowSlope;
+        var yellowThreshold = yellowSlope * asOfDay + yellowYIntercept;
+        if (percentComplete < yellowThreshold) {
+            return colors.yellow;
+        }
+
+        // Green
+        return colors.green;
+    },
+
+    calculateHealthColorForPortfolioItemData: function(recordData, percentDoneFieldName) {
+        var today = new Date();
+        var config = {
+            percentComplete: recordData[percentDoneFieldName],
+            startDate: recordData.ActualStartDate || recordData.PlannedStartDate || today,
+            asOfDate: today
+        };
+
+        if(recordData[percentDoneFieldName] === 1){
+            config.endDate = recordData.ActualEndDate || recordData.PlannedEndDate || today;
+        } else {
+            config.endDate = recordData.PlannedEndDate || today;
+        }
+
+        config.inProgress = config.percentComplete > 0;
+
+        return gApp.calculateHealthColor(config).hex;
     },
 
     launch: function() {
@@ -18620,6 +18744,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
   fill: #888;
   font-size: 1em;
   font-family: NotoSans,Helvetica,Arial;
+}
+.todaysDate {
+  stroke-dasharray: 8 2;
+  stroke: #88e;
+  stroke-width: 1px;
 }
 .error--node {
   fill: #000000;

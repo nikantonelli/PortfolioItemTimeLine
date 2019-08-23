@@ -30,6 +30,12 @@
   font-family: NotoSans,Helvetica,Arial;
 }
 
+.todaysDate {
+  stroke-dasharray: 8 2;
+  stroke: #88e;
+  stroke-width: 1px;
+}
+
 .error--node  {
   fill: rgb(0, 0, 0);
 }
