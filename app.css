@@ -20,13 +20,11 @@
 }
 
 .normalText {
-  font-size: 1em;
   font-family: NotoSans,Helvetica,Arial;
 }
 
 .normalText:hover {
   fill: #888;
-  font-size: 1em;
   font-family: NotoSans,Helvetica,Arial;
 }
 

@@ -15,7 +15,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             oneTypeOnly: false,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
-            lineSize: 20,
+            lineSize: 22,
             lowestDependencies: true,
             cardHover: true,
             pointsOrCount: false
@@ -361,6 +361,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     (gApp.getSetting('showTimeLine')?gApp._rowHeight:0);
                 })
             .attr('class', 'normalText')
+            .attr('style', 'font-size:' + gApp._getFontSize()) //Smallest font of 10
             .text( function(rel) {
                 return (rel.width > 80)? rel.get('Name'): '';
             })
@@ -478,6 +479,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         return retval;
     },
     
+    _getFontSize: function() {
+        return ((gApp._rowHeight>21)?(gApp._rowHeight-11): 10).toString(); //Smallest font of 8
+    },
+
     _refreshTree: function(){
 
         var svgWidth = parseInt(d3.select('svg').attr('width')) - gApp._rowHeight;
@@ -590,7 +595,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .attr('class', 'clickable normalText')
             .attr('editable', 'none')
             .attr('alignment-baseline', 'central')
-            .attr('style', 'font-size:' + (gApp._rowHeight-8))
+            .attr('style', 'font-size:' + gApp._getFontSize())
             .on('click', function(d, idx, arr) {
                 //Browsers get confused over the shift key (think it's 'selectAll')
                 if (d3.event.altKey) {
