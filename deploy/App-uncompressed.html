@@ -1583,19 +1583,19 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .attr('class', 'arrowbox')
             .on('click', gApp._startTreeAgain);
 
-        svg.append("g")        
+        var st = svg.append("g")        
             .attr("transform","translate(0,0)")
             .attr('width', gApp._rowHeight)
             .attr("id","staticTree");
         var todayPos = gApp.dateScaler(new Date());
         if ((todayPos > 0) && (todayPos < svg.attr('width'))){
-            svg.append('line')
+            st.append('line')
                 .attr('x1',todayPos + gApp._rowHeight)
                 .attr('y1', 0)
                 .attr('x2', todayPos + gApp._rowHeight)
                 .attr('y2', svg.attr('height'))
                 .attr('class', 'todaysDate');
-            svg.append('circle')
+            st.append('circle')
                 .attr('cx',todayPos + gApp._rowHeight)
                 .attr('cy', 2)
                 .attr('r', 2)
