@@ -790,6 +790,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                             var ypos = d3.event.clientY;
                             card.el.setLeftTop( (xpos - (this.getSize().width+20)) < 0 ? (xpos + 20) : (xpos - (this.getSize().width+20)), 
                                 (ypos + this.getSize().height)> gApp.getSize().height ? (gApp.getSize().height - (this.getSize().height+20)) : (ypos+10));  //Tree is rotated
+                            setTimeout(function() {
+                                card.hide();
+                            }, 5000);
                         }
                     }
                 });
