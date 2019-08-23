@@ -482,7 +482,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
         var svgWidth = parseInt(d3.select('svg').attr('width')) - gApp._rowHeight;
         var nodetree = gApp._nodeTree;
-        var healthField = gApp.getSetting('pointsOrCount')?'PercentDoneByStoryCount':'PercentDoneByStoryPlanEstimate'
+        var healthField = gApp.getSetting('pointsOrCount')?'PercentDoneByStoryCount':'PercentDoneByStoryPlanEstimate';
 
         var partition = d3.partition();
 
@@ -547,7 +547,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .attr('fill', function(d) { return "url(#lg" + d.data.record.get('FormattedID');  })
             .attr('opacity', 0.5)
             .attr('stroke', function(d) {
-                return d.data.record.get('DisplayColor')
+                return d.data.record.get('DisplayColor');
             })
             .attr('stroke-width',2)
             .attr('class',  'clickable dragTarget')
@@ -585,7 +585,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .attr('clip-path', function(d) { return 'url(#clipPath-'+d.data.Name + ')';})
             .attr('id', function(d) { return 'text-'+d.data.Name;})
             //We are going to put a gear menu in the front
-            .attr('x', gApp._rowHeight+15)
+            .attr('x', gApp._rowHeight+5)
             .attr('y', gApp._rowHeight/2)  //Should follow point size of font
             .attr('class', 'clickable normalText')
             .attr('editable', 'none')
