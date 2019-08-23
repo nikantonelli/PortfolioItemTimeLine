@@ -580,9 +580,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .attr('y', gApp._rowHeight/2)  //Should follow point size of font
             .attr('x', gApp._rowHeight/4)
             .attr('alignment-baseline', 'central')
-            .text('V')
+            .text(';')
             .attr('class', function(d) {
-                var lClass = 'icon-gear app-menu';
+                var lClass = 'icon-gear';
                 if ( !d.data.record.get('PlannedStartDate') || !d.data.record.get('PlannedEndDate')){
                     lClass += ' error';
                 }
