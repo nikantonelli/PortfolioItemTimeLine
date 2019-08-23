@@ -515,13 +515,36 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     .on('start', gApp._dragStart)
                 );
 
-        var drags = node.append('rect')
+            var defs = node.append('defs')
+                .append('linearGradient')
+                .attr('id', function(d) {
+                    return 'lg' + d.data.record.get('FormattedID');
+                });
+
+                defs.append('stop')
+                .attr('offset', function(d) {
+                    return (d.data.record.get('PercentDoneByStoryPlanEstimate')*100).toString() + "%";
+                })
+                .attr('stop-color', function(d) { return gApp.colours[d.depth+1]; });
+
+                defs.append('stop')
+                .attr('offset', function(d) {
+                    return (d.data.record.get('PercentDoneByStoryPlanEstimate')*100).toString() + "%";
+                })
+                .attr('stop-color', "#fff");
+                
+                var drags = node.append('rect')
             .attr('rx', gApp._rowHeight/2)
             .attr('ry', gApp._rowHeight/2)
+            .attr('y', 1)
             .attr('width', function(d) { return d.drawnWidth; })
-            .attr('height',gApp._rowHeight)
-            .attr('fill', function(d) { return gApp.colours[d.depth+1]; })
+            .attr('height',gApp._rowHeight-2)
+            .attr('fill', function(d) { return "url(#lg" + d.data.record.get('FormattedID');  })
             .attr('opacity', 0.5)
+            .attr('stroke', function(d) {
+                return d.data.record.get('DisplayColor')
+            })
+            .attr('stroke-width',1)
             .attr('class',  'clickable dragTarget')
             .on('mouseover', function(d, idx, arr) { gApp._nodeMouseOver(d, idx, arr);})
             .on('mouseout', function(d, idx, arr) { gApp._nodeMouseOut(d, idx, arr);})
