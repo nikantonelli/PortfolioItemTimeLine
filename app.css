@@ -200,3 +200,7 @@ circle.no--errors {
   stroke-opacity: 0.3;
   shape-rendering: crispEdges;
 }
+
+.icon-gear {
+  fill: #ffffff;
+}

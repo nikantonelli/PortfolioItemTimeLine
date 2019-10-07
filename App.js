@@ -480,7 +480,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
     
     _getFontSize: function() {
-        return ((gApp._rowHeight>21)?(gApp._rowHeight-11): 10).toString(); //Smallest font of 8
+        return ((gApp._rowHeight>22)?(gApp._rowHeight-12): 10).toString(); //Smallest font of 8
     },
 
     _refreshTree: function(){
@@ -542,7 +542,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     return (d.data.record.get(healthField)*100).toString() + "%";
                 })
                 .attr('stop-color', "#fff");
+                defs.append('opacity', 0.5)
                 
+
                 var drags = node.append('rect')
             .attr('rx', gApp._rowHeight/2)
             .attr('ry', gApp._rowHeight/2)
@@ -550,7 +552,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .attr('width', function(d) { return d.drawnWidth; })
             .attr('height',gApp._rowHeight-4)
             .attr('fill', function(d) { return "url(#lg" + d.data.record.get('FormattedID');  })
-            .attr('opacity', 0.5)
+//            .attr('opacity', 0.5)
             .attr('stroke', function(d) {
                 return d.data.record.get('DisplayColor');
             })
@@ -561,7 +563,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
             .attr('id', function(d) { return 'rect-'+d.data.Name;})
         ;
-        //Add clipPath here
+        node.append('circle')
+        .attr('cx', gApp._rowHeight/2 - 2)
+        .attr('cy', gApp._rowHeight/2)
+        .attr('r', gApp._rowHeight/2 - 2)
+        .attr('fill', function(d) {
+            return d.data.record.get('DisplayColor');
+        });
+    //Add clipPath here
         var cp = node.append('clipPath')
             .attr('id', function(d) { return 'clipPath-'+d.data.Name;});
 
@@ -574,13 +583,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
         node.append('text')
             .attr('y', gApp._rowHeight/2)  //Should follow point size of font
-            .attr('x', gApp._rowHeight/4)
+            .attr('x', gApp._rowHeight/4 -2)
             .attr('alignment-baseline', 'central')
             .text(';')
+            .attr('style', 'font-size:' + gApp._getFontSize())
             .attr('class', function(d) {
                 var lClass = 'icon-gear';
                 if ( !d.data.record.get('PlannedStartDate') || !d.data.record.get('PlannedEndDate')){
-                    lClass += ' error';
+                    lClass = 'error ' + lClass;
                 }
                 return lClass;
             })
@@ -616,7 +626,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var childrenNode = d3.selectAll('.children').append('text')
             .attr('x', function(d) { return -(gApp._rowHeight + d.drawnX);})   //Leave space for up/down arrow
             .attr('y', gApp._rowHeight/2)
-            .attr('class', 'icon-gear app-menu')                    
+            .attr('class', function(d) {
+                var lClass = 'icon-gear app-menu';
+                if ( !d.data.record.get('PlannedStartDate') || !d.data.record.get('PlannedEndDate')){
+                    lClass = 'error ' + lClass;
+                }
+                return lClass;
+            })
+            .attr('style', 'font-size:' + (gApp._getFontSize()-2))
             .attr('alignment-baseline', 'central')
             .text(function(d) { return d.children?'9':'8';})
             .on('click', function(d, idx, arr) { gApp._switchChildren(d, idx, arr);});
