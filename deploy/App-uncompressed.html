@@ -27,7 +27,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             lineSize: 22,
             lowestDependencies: true,
             cardHover: true,
-            pointsOrCount: false
+            pointsOrCount: false,
+            sortByTeam: true,
+            hideArchived: true
         }
     },
 
@@ -40,6 +42,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     getSettingsFields: function() {
         var returned = [
             {
+                name: 'hideArchived',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Hide Archived',
+                labelAlign: 'top'
+            },            {
                 name: 'showTimeLine',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show dates at top',
@@ -852,7 +859,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     _nodeClick: function (node,index,array) {
         if (!(node.data.record.data.ObjectID)) return; //Only exists on real items
-        //Get ordinal (or something ) to indicate we are the lowest level, then use "UserStories" instead of "Children"
         if (event.altKey) { 
             gApp._nodePopup(node,index,array); 
         }  else {
@@ -1373,7 +1379,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
 
     _fetchOneType: function() {
-        var fetchConfig = gApp._fetchConfig(true);
+        var fetchConfig = gApp._fetchPIConfig(true);
         fetchConfig.model = gApp._getSelectedType();
         fetchConfig.autoLoad = true;
         fetchConfig.pageSize = 2000;    //Wells Fargo..... Ouch!
@@ -1407,7 +1413,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         }
     },
 
-    _fetchConfig: function(lowest){
+    _fetchPIConfig: function(lowest){
         var collectionConfig = {
             sorters: [
                 {
@@ -1419,6 +1425,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             
             filters: []
         };
+
+        if (gApp.getSetting('hideArchived')) {
+            collectionConfig.filters.push({
+                property: 'Archived',
+                operator: '=',
+                value: false
+            });
+        }
 
         if (lowest) { //Only for lowest level item type)
             if(gApp.getSetting('showFilter') && gApp.advFilters && gApp.advFilters.length > 0){
@@ -1456,7 +1470,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 var lowest = record.get('PortfolioItemType').Ordinal < 2;
                 if (record.get('Children')){  
                     //Limit this to feature level and not beyond.
-                    var collectionConfig = gApp._fetchConfig(lowest);
+                    var collectionConfig = gApp._fetchPIConfig(lowest);
                     collectionConfig.callback = function(records, operation, success) {
                         //Start the recursive trawl down through the levels
                         if (success && records.length)  gApp._getArtifacts(records);
