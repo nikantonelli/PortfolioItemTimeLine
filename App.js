@@ -394,7 +394,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     _rescaledStart: function() {
         gApp._setAxis();
-        if (gApp.getSetting('showReleases')) { gApp._getReleases(); }
         gApp._zoomedStart();
     },
     _startTreeAgain: function()
