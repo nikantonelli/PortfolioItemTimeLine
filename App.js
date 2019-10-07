@@ -226,7 +226,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp._startTreeAgain();
     },
 
-    _switchChildren: function(d,idx,arr) {
+    _switchChildren: function(d) {
         if ( d.children) {
             d._children = d.children;
             d.children = null;
@@ -239,6 +239,20 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             d._value = 1;
         }
         gApp._zoomedStart();
+    },
+
+    _itemTreeClick: function(d, nodeTree) {
+        var me = this;
+        if (d3.event.shiftKey === false) {
+            me._switchChildren(d);
+        }
+        else {
+            if (d.parent) {
+                _.each(d.parent.children, function(child){
+                    me._switchChildren(child);
+                });
+            }
+        }
     },
 
     _initialiseScale: function() {
@@ -418,9 +432,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     _dragStart: function(d, idx, arr) {
         //Disable popups, hovers and cards?
-        if (d.card) { 
-            d.card.destroy();
-            d.card = null;
+        if (d.data.card) { 
+            d.data.card.destroy();
+            d.data.card = null;
         }
         d.dragInitStart = d3.event.x;        
     },
@@ -455,7 +469,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     _getGroupClass: function(d) {
         var rClass = 'clickable draggable' + ((d.children || d._children)?' children':'');
-        if (gApp._scheduleError(d)) {
+        if (gApp._checkSchedule(d)) {
             rClass += ' data--errors';
         }
         return rClass;
@@ -542,7 +556,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     return (d.data.record.get(healthField)*100).toString() + "%";
                 })
                 .attr('stop-color', "#fff");
-                defs.append('opacity', 0.5)
+                defs.append('opacity', 0.5);
                 
 
                 var drags = node.append('rect')
@@ -583,10 +597,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
         node.append('text')
             .attr('y', gApp._rowHeight/2)  //Should follow point size of font
-            .attr('x', gApp._rowHeight/4 -2)
+            .attr('x', ((gApp._rowHeight - gApp._getFontSize())/2)-1)   //Icon is offset.... doh!
             .attr('alignment-baseline', 'central')
+            .style("text-anchor", 'middle')
             .text(';')
-            .attr('style', 'font-size:' + gApp._getFontSize())
+            .attr('style', 'font-size:' + (gApp._getFontSize() - 2))
             .attr('class', function(d) {
                 var lClass = 'icon-gear';
                 if ( !d.data.record.get('PlannedStartDate') || !d.data.record.get('PlannedEndDate')){
@@ -636,7 +651,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .attr('style', 'font-size:' + (gApp._getFontSize()-2))
             .attr('alignment-baseline', 'central')
             .text(function(d) { return d.children?'9':'8';})
-            .on('click', function(d, idx, arr) { gApp._switchChildren(d, idx, arr);});
+            .on('click', function(d, idx, arr) { gApp._itemTreeClick(d);});
 
 
         nodetree.each(function(d) {
@@ -744,12 +759,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         panel.show();
     },
     
-    _scheduleError: function(d) {
-        if ( !d.parent || !d.parent.data.record.data.ObjectID ) { return false; }  //Top level item doesn't have a parent
-        return gApp._checkSchedule(d);
-    },
-
     _checkSchedule: function(d, start, end ) {
+        if ( !d.parent || !d.parent.data.record.data.ObjectID ) { return false; }  //Top level item doesn't have a parent
         var childStart = (start === undefined)? d.data.record.get('PlannedStartDate') : start;
         var childEnd = (end === undefined)? d.data.record.get('PlannedEndDate') : end;
         if ( d.parent.data.record.data.ObjectID) {
@@ -782,13 +793,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
     
     _nodeMouseOut: function(node, index,array){
-        if (node.card) node.card.hide();
+        if (node.data.card) node.data.card.hide();
     },
 
     _nodeMouseOver: function(node,index,array) {
         if (node.data.record.data.ObjectID && gApp.getSetting('cardHover')) {
             //Only exists on real items, so do something for the 'unknown' item
-            if ( !node.card) {
+            if ( !node.data.card) {
                 var card = Ext.create('Rally.ui.cardboard.Card', {
                     'record': node.data.record,
                     fields: gApp.CARD_DISPLAY_FIELD_LIST,
@@ -813,9 +824,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                         }
                     }
                 });
-                node.card = card;
+                node.data.card = card;
             }
-            node.card.show();
+            node.data.card.show();
         } else {
             return;
         }
@@ -825,7 +836,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var popover = Ext.create('Rally.ui.popover.DependenciesPopover',
             {
                 record: node.data.record,
-                target: node.card.el
+                target: node.data.card.el
             }
         );
     },
@@ -1231,14 +1242,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _nodes: [],
 
     onSettingsUpdate: function() {
-        if ( gApp._nodes) gApp._nodes = [];
+        gApp._clearNodes();
         gApp._kickOff();
     },
 
     onTimeboxScopeChange: function(newTimebox) {
         this.callParent(arguments);
         gApp.timeboxScope = newTimebox;
-        if ( gApp._nodes) gApp._nodes = [];
+        gApp._clearNodes();
         gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
     },
 
@@ -1246,7 +1257,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp.advFilters = inlineFilterButton.getTypesAndFilters().filters;
         inlineFilterButton._previousTypesAndFilters = inlineFilterButton.getTypesAndFilters();
         if ( gApp._nodes.length) {
-            gApp._nodes = [];
+            gApp._clearNodes();
         }
         if (gApp.getSetting('oneTypeOnly')) {
             gApp._fetchOneType();
@@ -1299,7 +1310,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 },
                 startAgain: function () {
                     var records = gApp.down('#itemSelector').valueModels;
-                    if ( gApp._nodes) gApp._nodes = [];
+                    gApp._clearNodes();
                     if (records.length > 1) {
                             gApp._nodes.push({'Name': 'Combined View',
                             'record': {
@@ -1360,7 +1371,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         fetchConfig.listeners = {
             load: function(store,records,opts) {
                 if (records.length > 0) {
-                    if ( gApp._nodes) gApp._nodes = [];
+                    gApp._clearNodes();
                     gApp._nodes.push({'Name': 'Combined View',
                         'record': {
                             'data': {
@@ -1378,6 +1389,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             }
         };
         Ext.create ('Rally.data.wsapi.Store', Ext.clone(fetchConfig));
+    },
+
+    _clearNodes: function() {
+        if (gApp._nodes) {
+            gApp._removeCards();
+            gApp._nodes = [];
+        }
     },
 
     _fetchConfig: function(lowest){
@@ -1629,7 +1647,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         d3.select('svg').selectAll(".releases").remove();
 
         //Go through all nodes and kill the cards
+        gApp._removeCards();
 
+    },
+
+    _removeCards: function() {
+        _.each(gApp._nodes, function(node) {
+            if (node.card) {
+                node.card.destroy();
+                node.card = null;
+            }
+        });
     },
 
     redrawNodeTree: function() {
