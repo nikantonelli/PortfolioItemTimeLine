@@ -319,6 +319,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _zoomedStart: function() {
         gApp._removeSVGTree();
         gApp._addSVGTree();
+        if (gApp.getSetting('showReleases')) { gApp._getReleases(); }
         gApp._refreshTree();
     },
 
