@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My Portfolio Item Tree</title>
+    <title>PI Timeline3</title>
 
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
 
@@ -9,26 +9,43 @@
         Rally.onReady(function () {
                 (function () {
     var Ext = window.Ext4 || window.Ext;
+    gApp = null;
 
-Ext.define('Nik.apps.PortfolioItemTimeline.app', {
+Ext.define('Nik.apps.PortfolioItemTimeline', {
     extend: 'Rally.app.TimeboxScopedApp',
     settingsScope: 'project',
     componentCls: 'app',
     config: {
-        tlAfter: 182,  //Half a year approx
-        tlBack:   30, //How many days before today.
         defaultSettings: {
             showTimeLine: true,
-            hideArchived: true,
+            showReleases: true,
             showFilter: true,
             allowMultiSelect: false,
             onlyDependencies: false,
             oneTypeOnly: false,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
-            lineSize: 20,
+            lineSize: 22,
             lowestDependencies: true,
-            cardHover: true
+            cardHover: true,
+            pointsOrCount: false,
+            sortByTeam: true,
+            hideArchived: true,
+            scaleToItems: true
+        }
+    },
+
+    inheritableStatics: {
+        leftSVGWidth: 100,
+        rightSVGWidth: 50
+    },
+
+    listeners: {
+        afterrender: function(item) { 
+            item.on('resize', function() {
+                gApp = item; 
+                gApp._enterMainApp();
+            });
         }
     },
 
@@ -40,72 +57,89 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     getSettingsFields: function() {
         var returned = [
-        {
-            name: 'showTimeLine',
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show dates at top',
-            labelAlign: 'top'
-        },
-        {
-            name: 'hideArchived',
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Hide Archived',
-            labelAlign: 'top'
-        },
-        {
-            name: 'allowMultiSelect',
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Enable multiple start items (Note: Page Reload required if you change value)',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show Advanced filter',
-            name: 'showFilter',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Only items with dependencies',
-            name: 'onlyDependencies',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Only Feature dependencies',
-            name: 'lowestDependencies',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show one type only',
-            name: 'oneTypeOnly',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Allow card pop-up on hover',
-            name: 'cardHover',
-            labelAlign: 'top'
-        },{
-            xtype: 'rallydatefield',
-            fieldLabel: 'Start Date',
-            name: 'startDate',
-            labelAlign: 'top'
-        },{
-            xtype: 'rallydatefield',
-            fieldLabel: 'End Date',
-            name: 'endDate',
-            labelAlign: 'top'
-        },
-        {
-            xtype: 'rallynumberfield',
-            fieldLabel: 'Grid bar width',
-            name: 'lineSize',
-            minValue: 15,
-            labelAlign: 'top'
-        }
-        
+            {
+                name: 'hideArchived',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Hide Archived',
+                labelAlign: 'top'
+            }, 
+            {
+                name: 'showTimeLine',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show dates at top',
+                labelAlign: 'top'
+            },
+            {
+                name: 'scaleToItems',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Scale to Items Selected',
+                labelAlign: 'top'
+            },
+            {
+                    name: 'showReleases',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show Releases at top',
+                labelAlign: 'top'
+            },
+            {
+                name: 'allowMultiSelect',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Enable multiple start items (Note: Page Reload required if you change value)',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show Advanced filter',
+                name: 'showFilter',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Only items with dependencies',
+                name: 'onlyDependencies',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Only Feature dependencies',
+                name: 'lowestDependencies',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Colour by Story Count',
+                name: 'pointsOrCount',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show one type only',
+                name: 'oneTypeOnly',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Allow card pop-up on hover',
+                name: 'cardHover',
+                labelAlign: 'top'
+            },{
+                xtype: 'rallydatefield',
+                fieldLabel: 'Start Date',
+                name: 'startDate',
+                labelAlign: 'top'
+            },{
+                xtype: 'rallydatefield',
+                fieldLabel: 'End Date',
+                name: 'endDate',
+                labelAlign: 'top'
+            },
+            {
+                xtype: 'rallynumberfield',
+                fieldLabel: 'Grid bar width',
+                name: 'lineSize',
+                minValue: 15,
+                labelAlign: 'top'
+            }        
         ];
         return returned;
     },
@@ -113,43 +147,44 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     itemId: 'rallyApp',
         MIN_COLUMN_WIDTH:   200,        //Looks silly on less than this
-        LOAD_STORE_MAX_RECORDS: 100, //Can blow up the Rally.data.wsapi.filter.Or
-        WARN_STORE_MAX_RECORDS: 300, //Can be slow if you fetch too many
-        _rowHeight: 100,               //Leave space for "World view" text
         STORE_FETCH_FIELD_LIST:
             [
-                'Name',
-                'FormattedID',
-                'Parent',
-                'DragAndDropRank',
-                'Children',
-                'ObjectID',
-                'Project',
-                'DisplayColor',
-                'Owner',
+                'ActualEndDate',
+                'ActualStartDate',
                 'Blocked',
                 'BlockedReason',
-                'Ready',
-                'Tags',
-                'Workspace',
-                'RevisionHistory',
+                'Children',
                 'CreationDate',
-                'PercentDoneByStoryCount',
-                'PercentDoneByStoryPlanEstimate',
-                'PredecessorsAndSuccessors',
-                'State',
-                'PreliminaryEstimate',
                 'Description',
-                'Notes',
-                'Predecessors',
-                'Successors',
-                'OrderIndex',   //Used to get the State field order index
-                'PortfolioItemType',
-                'Ordinal',
-                'Release',
+                'DisplayColor',
+                'DragAndDropRank',
+                'FormattedID',
                 'Iteration',
                 'Milestones',
-                //Customer specific after here. Delete as appropriate
+                'Name',
+                'Notes',
+                'ObjectID',
+                'OrderIndex', 
+                'Ordinal',
+                'Owner',
+                'Parent',
+                'PercentDoneByStoryCount',
+                'PercentDoneByStoryPlanEstimate',
+                'PlannedEndDate',
+                'PlannedStartDate',
+                'PortfolioItemType',
+                'Predecessors',
+                'PredecessorsAndSuccessors',
+                'PreliminaryEstimate',
+                'Project',
+                'Ready',
+                'Release',
+                'RevisionHistory',
+                'State',
+                'Successors',
+                'Tags',
+                'Workspace',
+                                //Customer specific after here. Delete as appropriate
                 // 'c_ProjectIDOBN',
                 // 'c_QRWP',
                 // 'c_ProgressUpdate',
@@ -175,26 +210,31 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
             ],
 
-    items: [
-        {  
-            xtype: 'container',
-            itemId: 'filterBox'
-        },{
-            xtype: 'container',
-            itemId: 'rootSurface',
-            margin: '5 15 5 5',
-            layout: 'auto',
-            width: '100%',
-            title: 'Loading...',
-            autoEl: {
-                tag: 'svg'
-            },
-            listeners: {
-                afterrender:  function() {  gApp = this.up('#rallyApp'); gApp._onElementValid(this);},
-            },
-            visible: false
-        }
-    ],
+    // items: [
+    //     {
+    //         xtype: 'container',
+    //         itemId: 'headerBox',
+    //         layout: 'hbox',
+    //     },
+    //     {  
+    //         xtype: 'container',
+    //         itemId: 'filterBox'
+    //     },{
+    //         xtype: 'container',
+    //         itemId: 'rootSurface',
+    //         width: '2000px',
+    //         height: '2000px',
+    //         overflowX: 'hidden',
+    //         overflowY: 'hidden',
+    //         margin: '5 15 5 5',
+    //         autoEl: {
+    //             tag: 'svg'
+    //         },
+    //         listeners: {
+    //             afterrender:  function() {  gApp = this.up('#rallyApp'); gApp._onElementValid(this);},
+    //         },
+    //     }
+    // ],
 
     timer: null,
     
@@ -214,20 +254,26 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     //Continuation point after selectors ready/changed
     _enterMainApp: function() {
         if (gApp._nodes.length === 0 ) { return; }  //Timer can fire before we have done anything
+        d3.select('svg').attr('width', this.getWidth()- 50);
+        d3.select('svg').attr('height', this.getHeight() - 50);
         gApp._rowHeight = gApp.getSetting('lineSize') || 20;
         //Get all the nodes and the "Unknown" parent virtual nodes
         var nodetree = gApp._createNodeTree(gApp._nodes);
         var svg = d3.select('svg');
-        svg.attr('height', gApp._rowHeight * (nodetree.value + ( gApp.getSetting('showTimeLine')?1:0)));
+        svg.attr('height', gApp._rowHeight * 
+            (nodetree.value + 
+            (gApp.getSetting('showTimeLine')?1:0) +     //Leave space for dates
+            (gApp.getSetting('showReleases')?1:0))      //Leave space for releases
+        );
         //Make surface the size available in the viewport (minus the selectors and margins)
         var rs = this.down('#rootSurface');
         rs.getEl().setHeight(svg.attr('height'));
-        svg.attr('width', rs.getEl().getWidth());
+//        svg.attr('width', rs.getEl().getWidth());
         svg.attr('class', 'rootSurface');
         gApp._startTreeAgain();
     },
 
-    _switchChildren: function(d,idx,arr) {
+    _switchChildren: function(d) {
         if ( d.children) {
             d._children = d.children;
             d.children = null;
@@ -242,11 +288,46 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp._zoomedStart();
     },
 
+    _itemTreeClick: function(d, nodeTree) {
+        var me = this;
+        if (d3.event.shiftKey === false) {
+            me._switchChildren(d);
+        }
+        else {
+            if (d.parent) {
+                _.each(d.parent.children, function(child){
+                    me._switchChildren(child);
+                });
+            }
+        }
+    },
+
+    _dateRangeOfItems: function() {
+
+        var timeBegin = null;
+        var timeEnd = null;
+
+        _.each( gApp._nodes, function(node) {
+            var dateStart = node.record.data.PlannedStartDate ? new Date(node.record.data.PlannedStartDate) : null;
+            var dateEnd = node.record.data.PlannedEndDate ? new Date(node.record.data.PlannedEndDate) : null;
+            if ((timeBegin === null) || ((dateStart !== null) && (dateStart < timeBegin))) { timeBegin = dateStart;}
+            if ((timeEnd   === null) || ((dateEnd   !== null) && (dateEnd   > timeEnd  ))) { timeEnd   = dateEnd  ;}
+        });
+
+        return ( [ timeBegin, timeEnd] );
+    },
+
     _initialiseScale: function() {
 
-       var timebegin = new Date(gApp.getSetting('startDate')) || Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.tlBack);
-       var timeend =  new Date(gApp.getSetting('endDate')) || Ext.Date.add(new Date(), Ext.Date.DAY, gApp.tlAfter);
-        gApp._setTimeScaler(timebegin,timeend);
+        var timeBegin = new Date(gApp.getSetting('startDate')) || Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.startDate);
+        var timeEnd =  new Date(gApp.getSetting('endDate')) || Ext.Date.add(new Date(), Ext.Date.DAY, gApp.endDate);
+
+        if (gApp.getSetting('scaleToItems')){
+            var dateRange = gApp._dateRangeOfItems();
+            timeBegin = dateRange[0] || timeBegin;        
+            timeEnd = dateRange[1] || timeEnd;
+        }
+        gApp._setTimeScaler(timeBegin,timeEnd);
     },
 
     _setTimeScaler: function(timebegin, timeend){
@@ -254,7 +335,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .domain([
                 timebegin, timeend
             ])
-            .range([0, parseInt(d3.select('svg').attr('width'))- (gApp._rowHeight + 10)]);
+            .range([0, +d3.select('svg').attr('width') - (gApp._rowHeight + 10)]);
     },
 
     _setAxis: function() {
@@ -299,8 +380,79 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _zoomedStart: function() {
         gApp._removeSVGTree();
         gApp._addSVGTree();
+        if (gApp.getSetting('showReleases')) { gApp._getReleases(); }
         gApp._refreshTree();
     },
+
+    _getReleases: function() {
+        var releases = Ext.create('Rally.data.wsapi.Store', {
+            model: 'Release',
+            autoLoad: true,
+            context: {
+                projectScopeDown: false,
+                projectScopeUp: false
+            },
+            filters: [
+                {
+                    property: 'ReleaseDate',
+                    operator: '>',
+                    value: gApp.dateScaler.invert(0)
+                },
+                {
+                    property: 'ReleaseStartDate',
+                    operator: '<',
+                    value: gApp.dateScaler.invert(+d3.select('svg').attr('width'))
+                }
+
+            ],
+            listeners: {
+                load: function(store, records, opts) {
+                    if (store.getRecords().length) {
+                        gApp._setReleases(records);
+                    }
+                }
+            }
+        });
+    },
+
+    _setReleases: function(releases) {
+        var relGroups = d3.select('svg').selectAll(".releases").data(releases)
+            .enter().append('g')
+            .attr('class', 'releases');
+
+        relGroups.attr('transform', function(rel) {
+            rel.x = gApp.dateScaler(new Date(rel.get('ReleaseStartDate')));
+            rel.x = (rel.x<0?0:rel.x) ;
+            return 'translate(' + (rel.x + gApp._rowHeight) + ',0)';}   //Move over by 2px and make 2px smaller in width below
+        );
+        relGroups.append('rect')
+            .attr('y', gApp._rowHeight)
+            .attr('height', gApp._rowHeight)
+            .attr('width', function(rel) {
+                var end = gApp.dateScaler(new Date(rel.get('ReleaseDate')));
+                end = (d3.select('svg').attr('width')<end)?d3.select('svg').attr('width'):end;
+                rel.width = end - rel.x;
+                return rel.width<4?2:rel.width-2;
+            })
+            .attr('class', function( rel, idx, arr) {
+                return 'q' + idx + '-' + (arr.length%5);
+            });
+        relGroups.append('text')
+            .attr('x', function(rel) { return rel.width/2;})
+            .attr('y', function(rel) {
+                return (gApp._rowHeight/2) +
+                    (gApp.getSetting('showTimeLine')?gApp._rowHeight:0);
+                })
+            .attr('class', 'normalText')
+            .attr('style', 'font-size:' + gApp._getFontSize()) //Smallest font of 10
+            .text( function(rel) {
+                return (rel.width > 80)? rel.get('Name'): '';
+            })
+            .style("text-anchor", 'middle')
+            .attr('alignment-baseline', 'central');
+
+    },
+
     _rescaledStart: function() {
         gApp._setAxis();
         gApp._zoomedStart();
@@ -340,12 +492,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         gApp._zoomedStart();
     },
 
-//     _dragDrag: function(d, idx, arr) {
-//         //The 'this' is a group, so we want to move it with a 'translate'
-//         debugger;
-// //        this.setAttribute('x', +this.getAttribute('x') + d3.event.dx);
-//     },
-
     _dragStart: function(d, idx, arr) {
         //Disable popups, hovers and cards?
         if (d.data.card) { 
@@ -374,7 +520,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
 
     _getSVGHeight: function() {
-        return parseInt(d3.select('svg').attr('height')) - (gApp.getSetting('showTimeLine')?gApp._rowHeight:0);
+        return parseInt(d3.select('svg').attr('height')) - 
+            (gApp.getSetting('showTimeLine')?gApp._rowHeight:0) -
+            (gApp.getSetting('showReleases')?gApp._rowHeight:0);
     },
 
     _itemMenu: function(d) {
@@ -407,10 +555,15 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         return retval;
     },
     
+    _getFontSize: function() {
+        return ((gApp._rowHeight>22)?(gApp._rowHeight-12): 10).toString(); //Smallest font of 8
+    },
+
     _refreshTree: function(){
 
         var svgWidth = parseInt(d3.select('svg').attr('width')) - gApp._rowHeight;
         var nodetree = gApp._nodeTree;
+        var healthField = gApp.getSetting('pointsOrCount')?'PercentDoneByStoryCount':'PercentDoneByStoryPlanEstimate';
 
         var partition = d3.partition();
 
@@ -446,20 +599,54 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                     .on('start', gApp._dragStart)
                 );
 
-        var drags = node.append('rect')
+            var defs = node.append('defs')
+                .append('linearGradient')
+                .attr('id', function(d) {
+                    return 'lg' + d.data.record.get('FormattedID');
+                });
+
+                defs.append('stop')
+                .attr('offset', function(d) {
+                    return (d.data.record.get(healthField)*100).toString() + "%";
+                })
+                .attr('stop-color', function(d) { 
+                    return gApp.calculateHealthColorForPortfolioItemData(d.data.record.data, healthField ); 
+                });
+
+                defs.append('stop')
+                .attr('offset', function(d) {
+                    return (d.data.record.get(healthField)*100).toString() + "%";
+                })
+                .attr('stop-color', "#fff");
+                defs.append('opacity', 0.5);
+                
+
+                var drags = node.append('rect')
             .attr('rx', gApp._rowHeight/2)
             .attr('ry', gApp._rowHeight/2)
+            .attr('y', 2)
             .attr('width', function(d) { return d.drawnWidth; })
-            .attr('height',gApp._rowHeight)
-            .attr('fill', function(d) { return gApp.colours[d.depth+1]; })
-            .attr('opacity', 0.5)
+            .attr('height',gApp._rowHeight-4)
+            .attr('fill', function(d) { return "url(#lg" + d.data.record.get('FormattedID');  })
+//            .attr('opacity', 0.5)
+            .attr('stroke', function(d) {
+                return d.data.record.get('DisplayColor');
+            })
+            .attr('stroke-width',2)
             .attr('class',  'clickable dragTarget')
             .on('mouseover', function(d, idx, arr) { gApp._nodeMouseOver(d, idx, arr);})
             .on('mouseout', function(d, idx, arr) { gApp._nodeMouseOut(d, idx, arr);})
 
             .attr('id', function(d) { return 'rect-'+d.data.Name;})
         ;
-        //Add clipPath here
+        node.append('circle')
+        .attr('cx', gApp._rowHeight/2 - 2)
+        .attr('cy', gApp._rowHeight/2)
+        .attr('r', gApp._rowHeight/2 - 2)
+        .attr('fill', function(d) {
+            return d.data.record.get('DisplayColor');
+        });
+    //Add clipPath here
         var cp = node.append('clipPath')
             .attr('id', function(d) { return 'clipPath-'+d.data.Name;});
 
@@ -472,13 +659,15 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
         node.append('text')
             .attr('y', gApp._rowHeight/2)  //Should follow point size of font
-            .attr('x', gApp._rowHeight/2)
+            .attr('x', ((gApp._rowHeight - gApp._getFontSize())/2)-1)   //Icon is offset.... doh!
             .attr('alignment-baseline', 'central')
-            .text('V')
+            .style("text-anchor", 'middle')
+            .text(';')
+            .attr('style', 'font-size:' + (gApp._getFontSize() - 2))
             .attr('class', function(d) {
-                var lClass = 'icon-gear app-menu';
+                var lClass = 'icon-gear';
                 if ( !d.data.record.get('PlannedStartDate') || !d.data.record.get('PlannedEndDate')){
-                    lClass += ' error';
+                    lClass = 'error ' + lClass;
                 }
                 return lClass;
             })
@@ -488,12 +677,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .attr('clip-path', function(d) { return 'url(#clipPath-'+d.data.Name + ')';})
             .attr('id', function(d) { return 'text-'+d.data.Name;})
             //We are going to put a gear menu in the front
-            .attr('x', gApp._rowHeight+15)
+            .attr('x', gApp._rowHeight+5)
             .attr('y', gApp._rowHeight/2)  //Should follow point size of font
             .attr('class', 'clickable normalText')
             .attr('editable', 'none')
             .attr('alignment-baseline', 'central')
-            .attr('style', 'font-size:' + (gApp._rowHeight-8))
+            .attr('style', 'font-size:' + gApp._getFontSize())
             .on('click', function(d, idx, arr) {
                 //Browsers get confused over the shift key (think it's 'selectAll')
                 if (d3.event.altKey) {
@@ -514,10 +703,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var childrenNode = d3.selectAll('.children').append('text')
             .attr('x', function(d) { return -(gApp._rowHeight + d.drawnX);})   //Leave space for up/down arrow
             .attr('y', gApp._rowHeight/2)
-            .attr('class', 'icon-gear app-menu')                    
+            .attr('class', function(d) {
+                var lClass = 'icon-gear app-menu';
+                if ( !d.data.record.get('PlannedStartDate') || !d.data.record.get('PlannedEndDate')){
+                    lClass = 'error ' + lClass;
+                }
+                return lClass;
+            })
+            .attr('style', 'font-size:' + (gApp._getFontSize()-2))
             .attr('alignment-baseline', 'central')
             .text(function(d) { return d.children?'9':'8';})
-            .on('click', function(d, idx, arr) { gApp._switchChildren(d, idx, arr);});
+            .on('click', function(d, idx, arr) { gApp._itemTreeClick(d);});
 
 
         nodetree.each(function(d) {
@@ -536,7 +732,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                 //Stuff without end point
                                 var source = d3.select('#rect-'+d.data.Name);
                                 var x0 = source.node().getCTM().e + source.node().getBBox().width - gApp._rowHeight;
-                                var y0 = source.node().getCTM().f - gApp._rowHeight/2;
+                                var y0 = source.node().getCTM().f + gApp._rowHeight/2 - 
+                                    ((gApp.getSetting('showReleases')?gApp._rowHeight:0) +
+                                     (gApp.getSetting('showTimeLine')?gApp._rowHeight:0));
 
                                 if (!e) { 
                                     zClass += 'textBlink';
@@ -566,7 +764,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                                 //Stuff that needs endpoint
                                 var target = d3.select('#rect-'+e.data.Name);
                                 var x1 = target.node().getCTM().e - gApp._rowHeight;
-                                var y1 = target.node().getCTM().f - (gApp._rowHeight/2);
+                                var y1 = target.node().getCTM().f + gApp._rowHeight/2 - 
+                                    ((gApp.getSetting('showReleases')?gApp._rowHeight:0) +
+                                     (gApp.getSetting('showTimeLine')?gApp._rowHeight:0));
 
                                 zoomTree.append('circle')
                                     .attr('cx', x1)
@@ -620,13 +820,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         );         
         panel.show();
     },
-
+    
     _checkSchedule: function(d, start, end ) {
         if ( !d.parent || !d.parent.data.record.data.ObjectID ) { return false; }  //Top level item doesn't have a parent
         var childStart = (start === undefined)? d.data.record.get('PlannedStartDate') : start;
         var childEnd = (end === undefined)? d.data.record.get('PlannedEndDate') : end;
-        return (childEnd > d.parent.data.record.get('PlannedEndDate')) ||
-            (childStart < d.parent.data.record.get('PlannedStartDate'));
+        if ( d.parent.data.record.data.ObjectID) {
+          return (childEnd > d.parent.data.record.get('PlannedEndDate')) ||
+              (childStart < d.parent.data.record.get('PlannedStartDate'));
+        } else {
+          return false;
+        }
     },
 
     _sequenceError: function(a, b) {
@@ -655,11 +859,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     },
 
     _nodeMouseOver: function(node,index,array) {
-        if (!(node.data.record.data.ObjectID)) {
+        if (node.data.record.data.ObjectID && gApp.getSetting('cardHover')) {
             //Only exists on real items, so do something for the 'unknown' item
-            return;
-        } else {
-
             if ( !node.data.card) {
                 var card = Ext.create('Rally.ui.cardboard.Card', {
                     'record': node.data.record,
@@ -679,12 +880,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                             var ypos = d3.event.clientY;
                             card.el.setLeftTop( (xpos - (this.getSize().width+20)) < 0 ? (xpos + 20) : (xpos - (this.getSize().width+20)), 
                                 (ypos + this.getSize().height)> gApp.getSize().height ? (gApp.getSize().height - (this.getSize().height+20)) : (ypos+10));  //Tree is rotated
+                            setTimeout(function() {
+                                card.hide();
+                            }, 5000);
                         }
                     }
                 });
                 node.data.card = card;
             }
             node.data.card.show();
+        } else {
+            return;
         }
     },
 
@@ -699,7 +905,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
     _nodeClick: function (node,index,array) {
         if (!(node.data.record.data.ObjectID)) return; //Only exists on real items
-        //Get ordinal (or something ) to indicate we are the lowest level, then use "UserStories" instead of "Children"
         if (event.altKey) { 
             gApp._nodePopup(node,index,array); 
         }  else {
@@ -1011,83 +1216,109 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _dataCheckForItem: function(d){
         return "";
     },
-    //Entry point after creation of render box
+    //Entry point after creation of SVG render box
     _onElementValid: function(rs) {
         gApp.timeboxScope = gApp.getContext().getTimeboxScope(); 
+        
         //Add any useful selectors into this container ( which is inserted before the rootSurface )
         //Choose a point when all are 'ready' to jump off into the rest of the app
-            var hdrBoxConfig = {
-                xtype: 'container',
-                itemId: 'headerBox',
-                layout: 'hbox',
-                items: [
-                    
-                    {
-                        xtype:  'rallyportfolioitemtypecombobox',
-                        itemId: 'piType',
-                        fieldLabel: 'Choose Portfolio Type :',
-                        labelWidth: 100,
-                        margin: '5 0 5 20',
-                        defaultSelectionPosition: 'first',
-                        listeners: {
-                            select: function() { gApp._kickOff();},    //Jump off here to add portfolio size selector
+        var hdrBox = this.down('#headerBox');
+        
+        hdrBox.add( 
+            {
+                xtype:  'rallyportfolioitemtypecombobox',
+                itemId: 'piType',
+                fieldLabel: 'Choose Portfolio Type :',
+                labelWidth: 100,
+                margin: '5 0 5 20',
+                defaultSelectionPosition: 'first',
+                listeners: {
+                    select: function() { gApp._kickOff();},    //Jump off here to add portfolio size selector
+                }
+            }
+        );
+
+        var saveButton = hdrBox.add( {
+            margin: 10,
+            xtype: 'rallybutton',
+            disabled: true,
+            text: 'Save Changes',
+            id: 'saveRecords',
+            handler: function() {
+                var changeStore = Ext.create('Rally.data.wsapi.Store', {
+                    model: 'Artifact',
+                    // proxy: {
+                    //     type: 'memory',
+                    //     reader: {
+                    //         type: 'json'
+                    //     }
+                    // }
+                });
+                changeStore.add(gApp._changedItems);
+                _.each(changeStore.getRecords(), function (record) {
+                    record.save().then ( {
+                        success: function() {
+                            Rally.environment.getMessageBus().publish(Rally.Message.objectUpdate, record, ['PlannedStartDate', 'PlannedEndDate']);
+                            
                         }
-                    },
-                ]
-            };
+                    });
+                });
+                gApp.down('#dropRecords').disable();
+                this.disable();
+            }
+        });
+        hdrBox.add( {
+            margin: 10,
+            xtype: 'rallybutton',
+            text: 'Discard Changes',
+            disabled: true,
+            id: 'dropRecords',
+            handler: function() {
+                _.each(gApp._changedItems, function(item) {
+                    item.self.load(item.getId(), {
+                        fetch: gApp.STORE_FETCH_FIELD_LIST,
+                    }).then( {
+                        success: function(record) {
+                            //Give it back to the node
+                            var d = gApp._findTreeNode(gApp._getNodeTreeRecordId(record));
+                            d.data.record = record;
+                            gApp._zoomedStart();
+                        },
+                        failure: function(){
+                            console.log("Save on buttonclick failed");
+                        }
+                    });
+                });
+                gApp._changedItems = [];
+                this.disable();
+                saveButton.disable();
+            }
+        });
+
+            /**
+             * Create an SVG frame for the various bits on screen.  We want to have three boxes (left to right) to hold
+             * 1. icons for tree manipulation
+             * 2. boxes to represent the items
+             * 3. trailing icons to indicate timebox continuation, etc.
+             **/
+
+            // var svg = d3.select('svg');
+            // svg.append('g')
+            //     .attr('id', 'leftSVG')
+            //     .attr('transform','translate(0,0)') //This starts at the left
+            //     .attr('width', Nik.apps.PortfolioItemTimeline.leftSVGWidth);   
+            // var scaledSVG = svg.append('g')
+            //     .attr('id', 'scaledSVG')
+            //     .attr('transform','translate(' + Nik.apps.PortfolioItemTimeline.leftSVGWidth + ',0)') 
+            //     .attr('width', svg.attr('width') - ( Nik.apps.PortfolioItemTimeline.leftSVGWidth + Nik.apps.PortfolioItemTimeline.rightSVGWidth));
+            // svg.append('g')
+            //     .attr('id', 'rightSVG')
+            //     .attr('transform', 'translate(' + (svg.attr('width') - Nik.apps.PortfolioItemTimeline.leftSVGWidth) + ',0)')
+            //     .attr('width', Nik.apps.PortfolioItemTimeline.rightSVGWidth);
             
-            var hdrBox = this.insert (0,hdrBoxConfig);
-            var saveButton = hdrBox.add( {
-                margin: 10,
-                xtype: 'rallybutton',
-                disabled: true,
-                text: 'Save Changes',
-                id: 'saveRecords',
-                handler: function() {
-                    var changeStore = Ext.create('Rally.data.wsapi.Store', {
-                        model: 'Artifact',
-                        // proxy: {
-                        //     type: 'memory',
-                        //     reader: {
-                        //         type: 'json'
-                        //     }
-                        // }
-                    });
-                    changeStore.add(gApp._changedItems);
-                    _.each(changeStore.getRecords(), function (record) {
-                        record.save();
-                    });
-                    gApp.down('#dropRecords').disable();
-                    this.disable();
-                }
-            });
-            hdrBox.add( {
-                margin: 10,
-                xtype: 'rallybutton',
-                text: 'Discard Changes',
-                disabled: true,
-                id: 'dropRecords',
-                handler: function() {
-                    _.each(gApp._changedItems, function(item) {
-                        item.self.load(item.getId(), {
-                            fetch: gApp.STORE_FETCH_FIELD_LIST,
-                        }).then( {
-                            success: function(record) {
-                                //Give it back to the node
-                                var d = gApp._findTreeNode(gApp._getNodeTreeRecordId(record));
-                                d.data.record = record;
-                                gApp._zoomedStart();
-                            },
-                            failure: function(){
-                                console.log("Save on buttonclick failed");
-                            }
-                        });
-                    });
-                    gApp._changedItems = [];
-                    this.disable();
-                    saveButton.disable();
-                }
-            });
+            // //Now we need some boxes top to bottom to represent things in the scaled area
+            // scaledSVG.append('g')
+            //     .attr('id', 'axisLabels');
     },
 
     _nodes: [],
@@ -1109,7 +1340,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         inlineFilterButton._previousTypesAndFilters = inlineFilterButton.getTypesAndFilters();
         if ( gApp._nodes.length) {
             gApp._clearNodes();
-            gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+        }
+        if (gApp.getSetting('oneTypeOnly')) {
+            gApp._fetchOneType();
+        } else {
+            if ( gApp.down('#itemSelector').getRecord() !== false ) {
+                gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+            }
         }
     },
 
@@ -1204,35 +1441,46 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         if (gApp.getSetting('oneTypeOnly')){
             //Get the records you can see of the type set in the piType selector
             //and call _getArtifacts with them.
-            var fetchConfig = gApp._fetchConfig(true);
-            fetchConfig.model = gApp._getSelectedType();
-            fetchConfig.autoLoad = true;
-            fetchConfig.pageSize = 2000;    //Wells Fargo..... Ouch!
-            fetchConfig.listeners = {
-                load: function(store,records,opts) {
-                    if (records.length > 1) {
-                        gApp._clearNodes();
-                        gApp._nodes.push({'Name': 'Combined View',
-                            'record': {
-                                'data': {
-                                    '_ref': 'root',
-                                    'Name': ''
-                                }
-                            },
-                            'local':true
-                        });
-                        gApp._getArtifacts(records);
-                    }
-                },
-                change: function (a,b,c,d,e,f) {
-                    console.log('change: ',arguments);
-                }
-            };
-            Ext.create ('Rally.data.wsapi.Store', fetchConfig );
+            gApp._fetchOneType();
         }
     },
 
-    _fetchConfig: function(lowest){
+    _fetchOneType: function() {
+        var fetchConfig = gApp._fetchPIConfig(true);
+        fetchConfig.model = gApp._getSelectedType();
+        fetchConfig.autoLoad = true;
+        fetchConfig.pageSize = 2000;    //Wells Fargo..... Ouch!
+        fetchConfig.listeners = {
+            load: function(store,records,opts) {
+                if (records.length > 0) {
+                    gApp._clearNodes();
+                    gApp._nodes.push({'Name': 'Combined View',
+                        'record': {
+                            'data': {
+                                '_ref': 'root',
+                                'Name': ''
+                            }
+                        },
+                        'local':true
+                    });
+                    gApp._getArtifacts(records);
+                }
+            },
+            change: function (a,b,c,d,e,f) {
+                console.log('change: ',arguments);
+            }
+        };
+        Ext.create ('Rally.data.wsapi.Store', Ext.clone(fetchConfig));
+    },
+
+    _clearNodes: function() {
+        if (gApp._nodes) {
+            gApp._removeCards();
+            gApp._nodes = [];
+        }
+    },
+
+    _fetchPIConfig: function(lowest){
         var collectionConfig = {
             sorters: [
                 {
@@ -1244,6 +1492,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             
             filters: []
         };
+
         if (gApp.getSetting('hideArchived')) {
             collectionConfig.filters.push({
                 property: 'Archived',
@@ -1288,7 +1537,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 var lowest = record.get('PortfolioItemType').Ordinal < 2;
                 if (record.get('Children')){  
                     //Limit this to feature level and not beyond.
-                    var collectionConfig = gApp._fetchConfig(lowest);
+                    var collectionConfig = gApp._fetchPIConfig(lowest);
                     collectionConfig.callback = function(records, operation, success) {
                         //Start the recursive trawl down through the levels
                         if (success && records.length)  gApp._getArtifacts(records);
@@ -1304,17 +1553,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         var nodes = [];
         //Push them into an array we can reconfigure
         _.each(data, function(record) {
+            if (record.data._ref === 'root') return null;
             var localNode = (gApp.getContext().getProjectRef() === record.get('Project')._ref);
             nodes.push({'Name': record.get('FormattedID'), 'record': record, 'local': localNode, 'dependencies': []});
         });
         return nodes;
-    },
-
-    _clearNodes: function() {
-        if (gApp._nodes) {
-            gApp._removeCards();
-            gApp._nodes = [];
-        }
     },
 
     _findNode: function(nodes, recordData) {
@@ -1453,7 +1696,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _addSVGTree: function() {
         var svg = d3.select('svg');
         svg.append("g")        
-            .attr("transform","translate(" + gApp._rowHeight + "," +  (gApp.getSetting('showTimeLine')?gApp._rowHeight:0) + ")")
+            .attr("transform","translate(" + gApp._rowHeight + "," +  
+                ((gApp.getSetting('showTimeLine')?gApp._rowHeight:0) + (gApp.getSetting('showReleases')?gApp._rowHeight:0)) + ")")
             .attr("id","zoomTree")
             .attr('width', +svg.attr('width') - gApp._rowHeight)
             .attr('height', +svg.attr('height'))
@@ -1463,10 +1707,24 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             .attr('class', 'arrowbox')
             .on('click', gApp._startTreeAgain);
 
-        svg.append("g")        
+        var st = svg.append("g")        
             .attr("transform","translate(0,0)")
             .attr('width', gApp._rowHeight)
             .attr("id","staticTree");
+        var todayPos = gApp.dateScaler(new Date());
+        if ((todayPos > 0) && (todayPos < svg.attr('width'))){
+            st.append('line')
+                .attr('x1',todayPos + gApp._rowHeight)
+                .attr('y1', 0)
+                .attr('x2', todayPos + gApp._rowHeight)
+                .attr('y2', svg.attr('height'))
+                .attr('class', 'todaysDate');
+            st.append('circle')
+                .attr('cx',todayPos + gApp._rowHeight)
+                .attr('cy', 2)
+                .attr('r', 2)
+                .attr('class', 'todaysDate');
+        }
     },
 
     _removeSVGTree: function() {
@@ -1476,16 +1734,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         if (d3.select("#staticTree")) {
             d3.select("#staticTree").remove();
         }
+        d3.select('svg').selectAll(".releases").remove();
+
         //Go through all nodes and kill the cards
         gApp._removeCards();
+
     },
 
-    redrawNodeTree: function() {
-        gApp._removeSVGTree();
-        gApp._enterMainApp();
-    },
-
-    _removeCards: function () {
+    _removeCards: function() {
         _.each(gApp._nodes, function(node) {
             if (node.card) {
                 node.card.destroy();
@@ -1494,10 +1750,156 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         });
     },
 
+    redrawNodeTree: function() {
+        gApp._removeSVGTree();
+        gApp._enterMainApp();
+    },
+
+    //Borrowed from sdk-debug.js
+    calculateHealthColor:function(config) {
+        var colors = Rally.util.HealthColorCalculator.colors;
+
+        var percentComplete = config.percentComplete * 100;
+
+        //turn dates into days since epoch, so we don't have to do date math
+        //also round start date to the beginning of the day, and end date to the end of the day
+
+        var millisecondsInDay = 86400000;
+
+        var startDate = config.startDate;
+        var endDate = config.endDate;
+
+        if(Ext.isString(startDate)){
+            startDate = new Date(Date.parse(startDate));
+        }
+        if(Ext.isString(endDate)){
+            endDate = new Date(Date.parse(endDate));
+        }
+
+        var startDay = startDate.getTime() / millisecondsInDay;
+        startDay = Math.floor(startDay);
+        var endDay = endDate.getTime() / millisecondsInDay;
+        endDay = Math.ceil(endDay) - 0.01;
+
+        var asOfDay = config.asOfDate.getTime() / millisecondsInDay;
+
+        var defaultConfig = {
+            acceptanceStartDelay:  (endDay - startDay) * 0.2,
+            warningDelay:  (endDay - startDay) * 0.2,
+            inProgress: percentComplete > 0
+        };
+
+        config = Ext.applyIf(Ext.clone(config), defaultConfig);
+
+        // Special cases
+        if (asOfDay < startDay) {
+            return colors.white;
+        }
+
+        if ((asOfDay >= startDay) &&
+            (asOfDay <= (startDay + config.acceptanceStartDelay)) &&
+            (! config.inProgress)) {
+            return colors.green;
+        }
+
+        if (asOfDay >= endDay) {
+            if (percentComplete >= 100.0) {
+                return colors.gray;
+            } else {
+                return colors.red;
+            }
+        }
+
+        // Red
+        var redXIntercept = startDay + config.acceptanceStartDelay + config.warningDelay;
+        var redSlope = 100.0 / (endDay - redXIntercept);
+        var redYIntercept = -1.0 * redXIntercept * redSlope;
+        var redThreshold = redSlope * asOfDay + redYIntercept;
+        if (percentComplete < redThreshold) {
+            return colors.red;
+        }
+
+        // Yellow
+        var yellowXIntercept = startDay + config.acceptanceStartDelay;
+        var yellowSlope = 100 / (endDay - yellowXIntercept);
+        var yellowYIntercept = -1.0 * yellowXIntercept * yellowSlope;
+        var yellowThreshold = yellowSlope * asOfDay + yellowYIntercept;
+        if (percentComplete < yellowThreshold) {
+            return colors.yellow;
+        }
+
+        // Green
+        return colors.green;
+    },
+
+    calculateHealthColorForPortfolioItemData: function(recordData, percentDoneFieldName) {
+        var today = new Date();
+        var config = {
+            percentComplete: recordData[percentDoneFieldName],
+            startDate: recordData.ActualStartDate || recordData.PlannedStartDate || today,
+            asOfDate: today
+        };
+
+        if(recordData[percentDoneFieldName] === 1){
+            config.endDate = recordData.ActualEndDate || recordData.PlannedEndDate || today;
+        } else {
+            config.endDate = recordData.PlannedEndDate || today;
+        }
+
+        config.inProgress = config.percentComplete > 0;
+
+        return gApp.calculateHealthColor(config).hex;
+    },
+
+    _addComponents: function() {
+        this.add(
+            {
+                xtype: 'container',
+                itemId: 'headerBox',
+                layout: 'hbox',
+            }
+        );
+
+        this.add(
+            {  
+                xtype: 'container',
+                itemId: 'filterBox'
+            }
+        );
+
+        this.add(
+            {
+                xtype: 'container',
+                itemId: 'rootSurface',
+                // width: this.ownerCt.getWidth(),
+                // height: this.ownerCt.getHeight(),
+                overflowX: 'hidden',
+                overflowY: 'hidden',
+                margin: '5 15 5 5',
+                autoEl: {
+                    tag: 'svg'
+                },
+                listeners: {
+                    afterrender:  function() {  gApp = this.up('#rallyApp'); gApp._onElementValid();},
+                },
+            }
+        );
+    },
+
     launch: function() {
 
         this.on('redrawNodeTree', this.redrawNodeTree);
         this.subscribe(this, Rally.Message.objectUpdate, this._objectUpdated, this);
+
+        //We need a way to detect whether we are running in slm or external. Rendering order is different.
+        if(this.ownerCt) {
+            this._addComponents();
+        }
+        else {
+            this.on ('afterrender', function() {
+                this._addComponents();
+            });
+        }
     },
 
     _objectUpdated: function(update){
@@ -18486,8 +18888,8 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 
 
-            Rally.launchApp('Nik.apps.PortfolioItemTimeline.app', {
-                name:"My Portfolio Item Tree",
+            Rally.launchApp('Nik.apps.PortfolioItemTimeline', {
+                name:"PI Timeline3",
                 parentRepos:"",
                 version:"0.1.1"
             });
@@ -18514,13 +18916,16 @@ Object.defineProperty(exports, '__esModule', { value: true });
   fill: transparent;
 }
 .normalText {
-  font-size: 1em;
   font-family: NotoSans,Helvetica,Arial;
 }
 .normalText:hover {
   fill: #888;
-  font-size: 1em;
   font-family: NotoSans,Helvetica,Arial;
+}
+.todaysDate {
+  stroke-dasharray: 8 2;
+  stroke: #88e;
+  stroke-width: 1px;
 }
 .error--node {
   fill: #000000;
@@ -18590,132 +18995,154 @@ circle.no--errors {
   border: black solid 1px;
   font-weight: bold;
 }
+.releases {
+  font-size: 1em;
+  font-family: NotoSans,Helvetica,Arial;
+}
+.q0-1 {
+  fill: #2b8cbe;
+}
+.q0-2 {
+  fill: #2b8cbe;
+}
+.q1-2 {
+  fill: #a6bddb;
+}
 .q0-3 {
-  fill: #fc8d59;
+  fill: #ece7f2;
 }
 .q1-3 {
-  fill: #ffffbf;
+  fill: #a6bddb;
 }
 .q2-3 {
-  fill: #91bfdb;
+  fill: #2b8cbe;
 }
 .q0-4 {
-  fill: #d7191c;
+  fill: #f1eef6;
 }
 .q1-4 {
-  fill: #fdae61;
+  fill: #bdc9e1;
 }
 .q2-4 {
-  fill: #abd9e9;
+  fill: #74a9cf;
 }
 .q3-4 {
-  fill: #2c7bb6;
+  fill: #0570b0;
 }
 .q0-5 {
-  fill: #d7191c;
+  fill: #f1eef6;
 }
 .q1-5 {
-  fill: #fdae61;
+  fill: #bdc9e1;
 }
 .q2-5 {
-  fill: #ffffbf;
+  fill: #74a9cf;
 }
 .q3-5 {
-  fill: #abd9e9;
+  fill: #2b8cbe;
 }
 .q4-5 {
-  fill: #2c7bb6;
+  fill: #045a8d;
 }
 .q0-6 {
-  fill: #d73027;
+  fill: #f1eef6;
 }
 .q1-6 {
-  fill: #fc8d59;
+  fill: #d0d1e6;
 }
 .q2-6 {
-  fill: #fee090;
+  fill: #a6bddb;
 }
 .q3-6 {
-  fill: #e0f3f8;
+  fill: #74a9cf;
 }
 .q4-6 {
-  fill: #91bfdb;
+  fill: #2b8cbe;
 }
 .q5-6 {
-  fill: #4575b4;
+  fill: #045a8d;
 }
 .q0-7 {
-  fill: #d73027;
+  fill: #f1eef6;
 }
 .q1-7 {
-  fill: #fc8d59;
+  fill: #d0d1e6;
 }
 .q2-7 {
-  fill: #fee090;
+  fill: #a6bddb;
 }
 .q3-7 {
-  fill: #ffffbf;
+  fill: #74a9cf;
 }
 .q4-7 {
-  fill: #e0f3f8;
+  fill: #3690c0;
 }
 .q5-7 {
-  fill: #91bfdb;
+  fill: #0570b0;
 }
 .q6-7 {
-  fill: #4575b4;
+  fill: #034e7b;
 }
 .q0-8 {
-  fill: #d73027;
+  fill: #fff7fb;
 }
 .q1-8 {
-  fill: #f46d43;
+  fill: #ece7f2;
 }
 .q2-8 {
-  fill: #fdae61;
+  fill: #d0d1e6;
 }
 .q3-8 {
-  fill: #fee090;
+  fill: #a6bddb;
 }
 .q4-8 {
-  fill: #e0f3f8;
+  fill: #74a9cf;
 }
 .q5-8 {
-  fill: #abd9e9;
+  fill: #3690c0;
 }
 .q6-8 {
-  fill: #74add1;
+  fill: #0570b0;
 }
 .q7-8 {
-  fill: #4575b4;
+  fill: #034e7b;
 }
 .q0-9 {
-  fill: #d73027;
+  fill: #fff7fb;
 }
 .q1-9 {
-  fill: #f46d43;
+  fill: #ece7f2;
 }
 .q2-9 {
-  fill: #fdae61;
+  fill: #d0d1e6;
 }
 .q3-9 {
-  fill: #fee090;
+  fill: #a6bddb;
 }
 .q4-9 {
-  fill: #ffffbf;
+  fill: #74a9cf;
 }
 .q5-9 {
-  fill: #e0f3f8;
+  fill: #3690c0;
 }
 .q6-9 {
-  fill: #abd9e9;
+  fill: #0570b0;
 }
 .q7-9 {
-  fill: #74add1;
+  fill: #045a8d;
 }
 .q8-9 {
-  fill: #4575b4;
+  fill: #023858;
 }
+/* 
+ .q0-3{fill:rgb(252,141,89)}  .q1-3{fill:rgb(255,255,191)}  .q2-3{fill:rgb(145,191,219)}
+ .q0-4{fill:rgb(215,25,28)}  .q1-4{fill:rgb(253,174,97)}  .q2-4{fill:rgb(171,217,233)}  .q3-4{fill:rgb(44,123,182)}
+ .q0-5{fill:rgb(215,25,28)}  .q1-5{fill:rgb(253,174,97)}  .q2-5{fill:rgb(255,255,191)}  .q3-5{fill:rgb(171,217,233)}  .q4-5{fill:rgb(44,123,182)}
+ .q0-6{fill:rgb(215,48,39)}  .q1-6{fill:rgb(252,141,89)}  .q2-6{fill:rgb(254,224,144)}  .q3-6{fill:rgb(224,243,248)}  .q4-6{fill:rgb(145,191,219)}  .q5-6{fill:rgb(69,117,180)}
+ .q0-7{fill:rgb(215,48,39)}  .q1-7{fill:rgb(252,141,89)}  .q2-7{fill:rgb(254,224,144)}  .q3-7{fill:rgb(255,255,191)}  .q4-7{fill:rgb(224,243,248)}  .q5-7{fill:rgb(145,191,219)}  .q6-7{fill:rgb(69,117,180)}
+ .q0-8{fill:rgb(215,48,39)}  .q1-8{fill:rgb(244,109,67)}  .q2-8{fill:rgb(253,174,97)}  .q3-8{fill:rgb(254,224,144)}  .q4-8{fill:rgb(224,243,248)}  .q5-8{fill:rgb(171,217,233)}  .q6-8{fill:rgb(116,173,209)}  .q7-8{fill:rgb(69,117,180)}
+ .q0-9{fill:rgb(215,48,39)}  .q1-9{fill:rgb(244,109,67)}  .q2-9{fill:rgb(253,174,97)}  .q3-9{fill:rgb(254,224,144)}  .q4-9{fill:rgb(255,255,191)}  .q5-9{fill:rgb(224,243,248)}  .q6-9{fill:rgb(171,217,233)}  .q7-9{fill:rgb(116,173,209)}  .q8-9{fill:rgb(69,117,180)} 
+ */
 @keyframes textBlink {
   50% {
     opacity: 0.5;
@@ -18736,6 +19163,9 @@ circle.no--errors {
 .axis line {
   stroke-opacity: 0.3;
   shape-rendering: crispEdges;
+}
+.icon-gear {
+  fill: #dddddd;
 }
 
     </style>
