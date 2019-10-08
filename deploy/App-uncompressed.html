@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PI Timeline2</title>
+    <title>PI Timeline3</title>
 
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
 
@@ -9,8 +9,9 @@
         Rally.onReady(function () {
                 (function () {
     var Ext = window.Ext4 || window.Ext;
+    gApp = null;
 
-Ext.define('Nik.apps.PortfolioItemTimeline.app', {
+Ext.define('Nik.apps.PortfolioItemTimeline', {
     extend: 'Rally.app.TimeboxScopedApp',
     settingsScope: 'project',
     componentCls: 'app',
@@ -29,7 +30,22 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             cardHover: true,
             pointsOrCount: false,
             sortByTeam: true,
-            hideArchived: true
+            hideArchived: true,
+            scaleToItems: true
+        }
+    },
+
+    inheritableStatics: {
+        leftSVGWidth: 100,
+        rightSVGWidth: 50
+    },
+
+    listeners: {
+        afterrender: function(item) { 
+            item.on('resize', function() {
+                gApp = item; 
+                gApp._enterMainApp();
+            });
         }
     },
 
@@ -46,13 +62,21 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Hide Archived',
                 labelAlign: 'top'
-            },            {
+            }, 
+            {
                 name: 'showTimeLine',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show dates at top',
                 labelAlign: 'top'
-            },{
-                name: 'showReleases',
+            },
+            {
+                name: 'scaleToItems',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Scale to Items Selected',
+                labelAlign: 'top'
+            },
+            {
+                    name: 'showReleases',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Releases at top',
                 labelAlign: 'top'
@@ -186,26 +210,31 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
 
             ],
 
-    items: [
-        {  
-            xtype: 'container',
-            itemId: 'filterBox'
-        },{
-            xtype: 'container',
-            itemId: 'rootSurface',
-            margin: '5 15 5 5',
-            layout: 'auto',
-            width: '100%',
-            title: 'Loading...',
-            autoEl: {
-                tag: 'svg'
-            },
-            listeners: {
-                afterrender:  function() {  gApp = this.up('#rallyApp'); gApp._onElementValid(this);},
-            },
-            visible: false
-        }
-    ],
+    // items: [
+    //     {
+    //         xtype: 'container',
+    //         itemId: 'headerBox',
+    //         layout: 'hbox',
+    //     },
+    //     {  
+    //         xtype: 'container',
+    //         itemId: 'filterBox'
+    //     },{
+    //         xtype: 'container',
+    //         itemId: 'rootSurface',
+    //         width: '2000px',
+    //         height: '2000px',
+    //         overflowX: 'hidden',
+    //         overflowY: 'hidden',
+    //         margin: '5 15 5 5',
+    //         autoEl: {
+    //             tag: 'svg'
+    //         },
+    //         listeners: {
+    //             afterrender:  function() {  gApp = this.up('#rallyApp'); gApp._onElementValid(this);},
+    //         },
+    //     }
+    // ],
 
     timer: null,
     
@@ -225,6 +254,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     //Continuation point after selectors ready/changed
     _enterMainApp: function() {
         if (gApp._nodes.length === 0 ) { return; }  //Timer can fire before we have done anything
+        d3.select('svg').attr('width', this.getWidth()- 50);
+        d3.select('svg').attr('height', this.getHeight() - 50);
         gApp._rowHeight = gApp.getSetting('lineSize') || 20;
         //Get all the nodes and the "Unknown" parent virtual nodes
         var nodetree = gApp._createNodeTree(gApp._nodes);
@@ -237,7 +268,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         //Make surface the size available in the viewport (minus the selectors and margins)
         var rs = this.down('#rootSurface');
         rs.getEl().setHeight(svg.attr('height'));
-        svg.attr('width', rs.getEl().getWidth());
+//        svg.attr('width', rs.getEl().getWidth());
         svg.attr('class', 'rootSurface');
         gApp._startTreeAgain();
     },
@@ -271,11 +302,32 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         }
     },
 
+    _dateRangeOfItems: function() {
+
+        var timeBegin = null;
+        var timeEnd = null;
+
+        _.each( gApp._nodes, function(node) {
+            var dateStart = node.record.data.PlannedStartDate ? new Date(node.record.data.PlannedStartDate) : null;
+            var dateEnd = node.record.data.PlannedEndDate ? new Date(node.record.data.PlannedEndDate) : null;
+            if ((timeBegin === null) || ((dateStart !== null) && (dateStart < timeBegin))) { timeBegin = dateStart;}
+            if ((timeEnd   === null) || ((dateEnd   !== null) && (dateEnd   > timeEnd  ))) { timeEnd   = dateEnd  ;}
+        });
+
+        return ( [ timeBegin, timeEnd] );
+    },
+
     _initialiseScale: function() {
 
-       var timebegin = new Date(gApp.getSetting('startDate')) || Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.startDate);
-       var timeend =  new Date(gApp.getSetting('endDate')) || Ext.Date.add(new Date(), Ext.Date.DAY, gApp.endDate);
-        gApp._setTimeScaler(timebegin,timeend);
+        var timeBegin = new Date(gApp.getSetting('startDate')) || Ext.Date.subtract(new Date(), Ext.Date.DAY, gApp.startDate);
+        var timeEnd =  new Date(gApp.getSetting('endDate')) || Ext.Date.add(new Date(), Ext.Date.DAY, gApp.endDate);
+
+        if (gApp.getSetting('scaleToItems')){
+            var dateRange = gApp._dateRangeOfItems();
+            timeBegin = dateRange[0] || timeBegin;        
+            timeEnd = dateRange[1] || timeEnd;
+        }
+        gApp._setTimeScaler(timeBegin,timeEnd);
     },
 
     _setTimeScaler: function(timebegin, timeend){
@@ -355,16 +407,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
             ],
             listeners: {
                 load: function(store, records, opts) {
-                    gApp._setReleases(records);
+                    if (store.getRecords().length) {
+                        gApp._setReleases(records);
+                    }
                 }
             }
         });
     },
 
     _setReleases: function(releases) {
-        var rels = d3.select('svg').selectAll(".releases");
-//        rels.remove();
-        var relGroups = rels.data(releases)
+        var relGroups = d3.select('svg').selectAll(".releases").data(releases)
             .enter().append('g')
             .attr('class', 'releases');
 
@@ -439,12 +491,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         if (gApp.down('#dropRecords')) { gApp.down('#dropRecords').enable(); }
         gApp._zoomedStart();
     },
-
-//     _dragDrag: function(d, idx, arr) {
-//         //The 'this' is a group, so we want to move it with a 'translate'
-//         debugger;
-// //        this.setAttribute('x', +this.getAttribute('x') + d3.event.dx);
-//     },
 
     _dragStart: function(d, idx, arr) {
         //Disable popups, hovers and cards?
@@ -1170,88 +1216,109 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
     _dataCheckForItem: function(d){
         return "";
     },
-    //Entry point after creation of render box
+    //Entry point after creation of SVG render box
     _onElementValid: function(rs) {
         gApp.timeboxScope = gApp.getContext().getTimeboxScope(); 
+        
         //Add any useful selectors into this container ( which is inserted before the rootSurface )
         //Choose a point when all are 'ready' to jump off into the rest of the app
-            var hdrBoxConfig = {
-                xtype: 'container',
-                itemId: 'headerBox',
-                layout: 'hbox',
-                items: [
-                    
-                    {
-                        xtype:  'rallyportfolioitemtypecombobox',
-                        itemId: 'piType',
-                        fieldLabel: 'Choose Portfolio Type :',
-                        labelWidth: 100,
-                        margin: '5 0 5 20',
-                        defaultSelectionPosition: 'first',
-                        listeners: {
-                            select: function() { gApp._kickOff();},    //Jump off here to add portfolio size selector
+        var hdrBox = this.down('#headerBox');
+        
+        hdrBox.add( 
+            {
+                xtype:  'rallyportfolioitemtypecombobox',
+                itemId: 'piType',
+                fieldLabel: 'Choose Portfolio Type :',
+                labelWidth: 100,
+                margin: '5 0 5 20',
+                defaultSelectionPosition: 'first',
+                listeners: {
+                    select: function() { gApp._kickOff();},    //Jump off here to add portfolio size selector
+                }
+            }
+        );
+
+        var saveButton = hdrBox.add( {
+            margin: 10,
+            xtype: 'rallybutton',
+            disabled: true,
+            text: 'Save Changes',
+            id: 'saveRecords',
+            handler: function() {
+                var changeStore = Ext.create('Rally.data.wsapi.Store', {
+                    model: 'Artifact',
+                    // proxy: {
+                    //     type: 'memory',
+                    //     reader: {
+                    //         type: 'json'
+                    //     }
+                    // }
+                });
+                changeStore.add(gApp._changedItems);
+                _.each(changeStore.getRecords(), function (record) {
+                    record.save().then ( {
+                        success: function() {
+                            Rally.environment.getMessageBus().publish(Rally.Message.objectUpdate, record, ['PlannedStartDate', 'PlannedEndDate']);
+                            
                         }
-                    },
-                ]
-            };
+                    });
+                });
+                gApp.down('#dropRecords').disable();
+                this.disable();
+            }
+        });
+        hdrBox.add( {
+            margin: 10,
+            xtype: 'rallybutton',
+            text: 'Discard Changes',
+            disabled: true,
+            id: 'dropRecords',
+            handler: function() {
+                _.each(gApp._changedItems, function(item) {
+                    item.self.load(item.getId(), {
+                        fetch: gApp.STORE_FETCH_FIELD_LIST,
+                    }).then( {
+                        success: function(record) {
+                            //Give it back to the node
+                            var d = gApp._findTreeNode(gApp._getNodeTreeRecordId(record));
+                            d.data.record = record;
+                            gApp._zoomedStart();
+                        },
+                        failure: function(){
+                            console.log("Save on buttonclick failed");
+                        }
+                    });
+                });
+                gApp._changedItems = [];
+                this.disable();
+                saveButton.disable();
+            }
+        });
+
+            /**
+             * Create an SVG frame for the various bits on screen.  We want to have three boxes (left to right) to hold
+             * 1. icons for tree manipulation
+             * 2. boxes to represent the items
+             * 3. trailing icons to indicate timebox continuation, etc.
+             **/
+
+            // var svg = d3.select('svg');
+            // svg.append('g')
+            //     .attr('id', 'leftSVG')
+            //     .attr('transform','translate(0,0)') //This starts at the left
+            //     .attr('width', Nik.apps.PortfolioItemTimeline.leftSVGWidth);   
+            // var scaledSVG = svg.append('g')
+            //     .attr('id', 'scaledSVG')
+            //     .attr('transform','translate(' + Nik.apps.PortfolioItemTimeline.leftSVGWidth + ',0)') 
+            //     .attr('width', svg.attr('width') - ( Nik.apps.PortfolioItemTimeline.leftSVGWidth + Nik.apps.PortfolioItemTimeline.rightSVGWidth));
+            // svg.append('g')
+            //     .attr('id', 'rightSVG')
+            //     .attr('transform', 'translate(' + (svg.attr('width') - Nik.apps.PortfolioItemTimeline.leftSVGWidth) + ',0)')
+            //     .attr('width', Nik.apps.PortfolioItemTimeline.rightSVGWidth);
             
-            var hdrBox = this.insert (0,hdrBoxConfig);
-            var saveButton = hdrBox.add( {
-                margin: 10,
-                xtype: 'rallybutton',
-                disabled: true,
-                text: 'Save Changes',
-                id: 'saveRecords',
-                handler: function() {
-                    var changeStore = Ext.create('Rally.data.wsapi.Store', {
-                        model: 'Artifact',
-                        // proxy: {
-                        //     type: 'memory',
-                        //     reader: {
-                        //         type: 'json'
-                        //     }
-                        // }
-                    });
-                    changeStore.add(gApp._changedItems);
-                    _.each(changeStore.getRecords(), function (record) {
-                        record.save().then ( {
-                            success: function() {
-                                Rally.environment.getMessageBus().publish(Rally.Message.objectUpdate, record, ['PlannedStartDate', 'PlannedEndDate']);
-                                
-                            }
-                        });
-                    });
-                    gApp.down('#dropRecords').disable();
-                    this.disable();
-                }
-            });
-            hdrBox.add( {
-                margin: 10,
-                xtype: 'rallybutton',
-                text: 'Discard Changes',
-                disabled: true,
-                id: 'dropRecords',
-                handler: function() {
-                    _.each(gApp._changedItems, function(item) {
-                        item.self.load(item.getId(), {
-                            fetch: gApp.STORE_FETCH_FIELD_LIST,
-                        }).then( {
-                            success: function(record) {
-                                //Give it back to the node
-                                var d = gApp._findTreeNode(gApp._getNodeTreeRecordId(record));
-                                d.data.record = record;
-                                gApp._zoomedStart();
-                            },
-                            failure: function(){
-                                console.log("Save on buttonclick failed");
-                            }
-                        });
-                    });
-                    gApp._changedItems = [];
-                    this.disable();
-                    saveButton.disable();
-                }
-            });
+            // //Now we need some boxes top to bottom to represent things in the scaled area
+            // scaledSVG.append('g')
+            //     .attr('id', 'axisLabels');
     },
 
     _nodes: [],
@@ -1784,10 +1851,55 @@ Ext.define('Nik.apps.PortfolioItemTimeline.app', {
         return gApp.calculateHealthColor(config).hex;
     },
 
+    _addComponents: function() {
+        this.add(
+            {
+                xtype: 'container',
+                itemId: 'headerBox',
+                layout: 'hbox',
+            }
+        );
+
+        this.add(
+            {  
+                xtype: 'container',
+                itemId: 'filterBox'
+            }
+        );
+
+        this.add(
+            {
+                xtype: 'container',
+                itemId: 'rootSurface',
+                // width: this.ownerCt.getWidth(),
+                // height: this.ownerCt.getHeight(),
+                overflowX: 'hidden',
+                overflowY: 'hidden',
+                margin: '5 15 5 5',
+                autoEl: {
+                    tag: 'svg'
+                },
+                listeners: {
+                    afterrender:  function() {  gApp = this.up('#rallyApp'); gApp._onElementValid();},
+                },
+            }
+        );
+    },
+
     launch: function() {
 
         this.on('redrawNodeTree', this.redrawNodeTree);
         this.subscribe(this, Rally.Message.objectUpdate, this._objectUpdated, this);
+
+        //We need a way to detect whether we are running in slm or external. Rendering order is different.
+        if(this.ownerCt) {
+            this._addComponents();
+        }
+        else {
+            this.on ('afterrender', function() {
+                this._addComponents();
+            });
+        }
     },
 
     _objectUpdated: function(update){
@@ -18776,8 +18888,8 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 
 
-            Rally.launchApp('Nik.apps.PortfolioItemTimeline.app', {
-                name:"PI Timeline2",
+            Rally.launchApp('Nik.apps.PortfolioItemTimeline', {
+                name:"PI Timeline3",
                 parentRepos:"",
                 version:"0.1.1"
             });
