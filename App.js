@@ -8,21 +8,21 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     componentCls: 'app',
     config: {
         defaultSettings: {
+            hideArchived: true,
             showTimeLine: true,
+            scaleToItems: false,
             showReleases: true,
-            showFilter: true,
             allowMultiSelect: false,
+            showFilter: true,
             onlyDependencies: false,
-            oneTypeOnly: false,
+            lowestDependencies: false,
+            pointsOrCount: false,
+            oneTypeOnly: true,
+            cardHover: true,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
             lineSize: 22,
-            lowestDependencies: true,
-            cardHover: true,
-            pointsOrCount: false,
             sortByTeam: true,
-            hideArchived: true,
-            scaleToItems: true
         }
     },
 
@@ -35,16 +35,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         afterrender: function(item) { 
             item.on('resize', function() {
                 gApp = item; 
+                d3.select('svg').selectAll('g').remove();
                 gApp._enterMainApp();
             });
         }
     },
-
-    //"Nobody needs more than 640Kb...... or ten colours....."
-    colours: ['#f2f0f7','#dadaeb','#bcbddc','#9e9ac8','#756bb1','#54278f'],
-    //['#e0ecf4','#9ebcda','#8856a7','#7a0177','#c51b8a','#f768a1'],
-    //['#edf8fb','#bfd3e6','#9ebcda','#8c96c6','#8856a7','#810f7c'],
-    //['#edf8fb','#bfd3e6','#9ebcda','#8c96c6','#8856a7','#810f7c','#7a0177','#c51b8a','#f768a1','#fcc5c0','#feebe2'],
 
     getSettingsFields: function() {
         var returned = [
@@ -201,32 +196,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
             ],
 
-    // items: [
-    //     {
-    //         xtype: 'container',
-    //         itemId: 'headerBox',
-    //         layout: 'hbox',
-    //     },
-    //     {  
-    //         xtype: 'container',
-    //         itemId: 'filterBox'
-    //     },{
-    //         xtype: 'container',
-    //         itemId: 'rootSurface',
-    //         width: '2000px',
-    //         height: '2000px',
-    //         overflowX: 'hidden',
-    //         overflowY: 'hidden',
-    //         margin: '5 15 5 5',
-    //         autoEl: {
-    //             tag: 'svg'
-    //         },
-    //         listeners: {
-    //             afterrender:  function() {  gApp = this.up('#rallyApp'); gApp._onElementValid(this);},
-    //         },
-    //     }
-    // ],
-
     timer: null,
     
     _resetTimer: function(callFunc) {
@@ -234,33 +203,54 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         gApp.timer = setTimeout(callFunc, 2000);    //Debounce user selections to the tune of two seconds
     },
 
-    //Set the SVG area to the surface we have provided
-    _setSVGSize: function(surface) {
-        var svg = d3.select('svg');
-        svg.attr('width', surface.getEl().dom.clientWidth);
-        svg.attr('height',surface.getEl().dom.clientHeight);
-    },
     _nodeTree: null,
 
     //Continuation point after selectors ready/changed
     _enterMainApp: function() {
         if (gApp._nodes.length === 0 ) { return; }  //Timer can fire before we have done anything
-        d3.select('svg').attr('width', this.getWidth()- 50);
-        d3.select('svg').attr('height', this.getHeight() - 50);
+        var outerSvg = d3.select('svg');
+        outerSvg.attr('width', this.getWidth()- 50);
+        outerSvg.attr('height', this.getHeight() - 50);
         gApp._rowHeight = gApp.getSetting('lineSize') || 20;
         //Get all the nodes and the "Unknown" parent virtual nodes
         var nodetree = gApp._createNodeTree(gApp._nodes);
-        var svg = d3.select('svg');
-        svg.attr('height', gApp._rowHeight * 
+
+        /**
+         * Create an SVG frame for the various bits on screen.  We want to have three boxes (left to right) to hold
+         * 1. icons for tree manipulation
+         * 2. boxes to represent the items
+         * 3. trailing icons to indicate timebox continuation, etc.
+         **/
+
+        outerSvg.append('g')
+            .attr('id', 'leftSVG')
+            .attr('transform','translate(0,0)') //This starts at the left
+            .attr('width', Nik.apps.PortfolioItemTimeline.leftSVGWidth);   
+        var scaledSvg = outerSvg.append('g')
+            .attr('id', 'scaledSvg')
+            .attr('transform','translate(' + Nik.apps.PortfolioItemTimeline.leftSVGWidth + ',0)') 
+            .attr('width', outerSvg.attr('width') - ( Nik.apps.PortfolioItemTimeline.leftSVGWidth + Nik.apps.PortfolioItemTimeline.rightSVGWidth));
+        outerSvg.append('g')
+            .attr('id', 'rightSVG')
+            .attr('transform', 'translate(' + (outerSvg.attr('width') - Nik.apps.PortfolioItemTimeline.leftSVGWidth) + ',0)')
+            .attr('width', Nik.apps.PortfolioItemTimeline.rightSVGWidth);
+        
+        //Now we need some boxes top to bottom to represent things in the scaled area
+        scaledSvg.append('g')
+            .attr('id', 'axisLabels');
+
+        outerSvg.attr('height', gApp._rowHeight * 
             (nodetree.value + 
             (gApp.getSetting('showTimeLine')?1:0) +     //Leave space for dates
             (gApp.getSetting('showReleases')?1:0))      //Leave space for releases
         );
+        scaledSvg.attr('height', outerSvg.attr('height'));
         //Make surface the size available in the viewport (minus the selectors and margins)
         var rs = this.down('#rootSurface');
-        rs.getEl().setHeight(svg.attr('height'));
+        rs.getEl().setHeight(outerSvg.attr('height'));
 //        svg.attr('width', rs.getEl().getWidth());
-        svg.attr('class', 'rootSurface');
+        outerSvg.attr('class', 'rootSurface');
+
         gApp._startTreeAgain();
     },
 
@@ -276,7 +266,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             d.value = d._value;
             d._value = 1;
         }
-        gApp._zoomedStart();
+        gApp._restart();
     },
 
     _itemTreeClick: function(d, nodeTree) {
@@ -326,49 +316,27 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .domain([
                 timebegin, timeend
             ])
-            .range([0, +d3.select('svg').attr('width') - (gApp._rowHeight + 10)]);
+            .range([0, +d3.select('#scaledSvg').attr('width') - (gApp._rowHeight + 10)]);
     },
 
     _setAxis: function() {
         if (gApp.gX) { gApp.gX.remove(); }
-        var svg = d3.select('svg');
+        var svg = d3.select('#scaledSvg');
         var width = +svg.attr('width');
         var height = +svg.attr('height');
         gApp.xAxis = d3.axisBottom(gApp.dateScaler)
             .ticks(( (width -gApp._rowHeight)+ 2)/80)
             .tickSize(height)
             .tickPadding(gApp.getSetting('showTimeLine')? (8 - height):0);
-        gApp.gX  = d3.select('svg').append('g');
-        gApp.gX.attr('transform', 'translate(' + gApp._rowHeight + ',0)')
-            .attr('id','axisBox')
-            .attr('width', width - (gApp._rowHeight + 10))
+        gApp.gX  = d3.select('#scaledSvg').append('g');
+        gApp.gX.attr('id','axisBox')
+            .attr('width', width)
             .attr('height', height)
             .attr("class", 'axis')
             .call(gApp.xAxis);    
     },
 
-    _setZoomer: function() {
-        var svg = d3.select('svg');
-        gApp.zoom = d3.zoom()
-            .on("zoom",gApp._zoomed);
-        svg.call(gApp.zoom);
-    },
-
-    _zoomed: function() {
-
-        var maxDate = new Date("1 Jan 1970");
-        var minDate = new Date("31 Dec 2999");  //I'll be dead by then!
-        gApp.gX.call(gApp.xAxis.scale(d3.event.transform.rescaleX(gApp.dateScaler)));
-        var data = gApp.gX.selectAll('g');
-        data.each( function(d) {
-            if (d > maxDate) { maxDate = d;}
-            if (d < minDate) { minDate = d;}
-        });
-        gApp._setTimeScaler(minDate, maxDate);
-        gApp._zoomedStart();
-    },
-
-    _zoomedStart: function() {
+    _restart: function() {
         gApp._removeSVGTree();
         gApp._addSVGTree();
         if (gApp.getSetting('showReleases')) { gApp._getReleases(); }
@@ -392,7 +360,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 {
                     property: 'ReleaseStartDate',
                     operator: '<',
-                    value: gApp.dateScaler.invert(+d3.select('svg').attr('width'))
+                    value: gApp.dateScaler.invert(+d3.select('#scaledSvg').attr('width'))
                 }
 
             ],
@@ -407,7 +375,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _setReleases: function(releases) {
-        var relGroups = d3.select('svg').selectAll(".releases").data(releases)
+        var relGroups = d3.select('#scaledSvg').selectAll(".releases").data(releases)
             .enter().append('g')
             .attr('class', 'releases');
 
@@ -421,7 +389,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .attr('height', gApp._rowHeight)
             .attr('width', function(rel) {
                 var end = gApp.dateScaler(new Date(rel.get('ReleaseDate')));
-                end = (d3.select('svg').attr('width')<end)?d3.select('svg').attr('width'):end;
+                end = (d3.select('#scaledSvg').attr('width')<end)?d3.select('#scaledSvg').attr('width'):end;
                 rel.width = end - rel.x;
                 return rel.width<4?2:rel.width-2;
             })
@@ -446,8 +414,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _rescaledStart: function() {
         gApp._setAxis();
-        gApp._zoomedStart();
+        gApp._restart();
     },
+
     _startTreeAgain: function()
     {
         gApp._initialiseScale();
@@ -480,7 +449,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         gApp._changedItems.push(d.data.record);
         if (gApp.down('#saveRecords')) { gApp.down('#saveRecords').enable(); }
         if (gApp.down('#dropRecords')) { gApp.down('#dropRecords').enable(); }
-        gApp._zoomedStart();
+        gApp._restart();
     },
 
     _dragStart: function(d, idx, arr) {
@@ -511,7 +480,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _getSVGHeight: function() {
-        return parseInt(d3.select('svg').attr('height')) - 
+        return parseInt(d3.select('#scaledSvg').attr('height')) - 
             (gApp.getSetting('showTimeLine')?gApp._rowHeight:0) -
             (gApp.getSetting('showReleases')?gApp._rowHeight:0);
     },
@@ -552,7 +521,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _refreshTree: function(){
 
-        var svgWidth = parseInt(d3.select('svg').attr('width')) - gApp._rowHeight;
+        var svgWidth = parseInt(d3.select('#scaledSvg').attr('width')) - gApp._rowHeight;
         var nodetree = gApp._nodeTree;
         var healthField = gApp.getSetting('pointsOrCount')?'PercentDoneByStoryCount':'PercentDoneByStoryPlanEstimate';
 
@@ -612,7 +581,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 defs.append('opacity', 0.5);
                 
 
-                var drags = node.append('rect')
+        var drags = node.append('rect')
             .attr('rx', gApp._rowHeight/2)
             .attr('ry', gApp._rowHeight/2)
             .attr('y', 2)
@@ -684,14 +653,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             })
             .text(function(d) { return d.data.record.get('FormattedID') + ": " + d.data.record.get('Name');});
             
-        // gApp.drag = d3.drag()
-        //     .on('end', gApp._dragEnd)
-        //     .on('start', gApp._dragStart)
-        //     .on('drag', gApp._dragDrag)
-        //     .container(function() { return this; });
-        // drags.call(gApp.drag);
-
-        var childrenNode = d3.selectAll('.children').append('text')
+        d3.selectAll('.children').append('text')
             .attr('x', function(d) { return -(gApp._rowHeight + d.drawnX);})   //Leave space for up/down arrow
             .attr('y', gApp._rowHeight/2)
             .attr('class', function(d) {
@@ -701,7 +663,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 }
                 return lClass;
             })
-            .attr('style', 'font-size:' + (gApp._getFontSize()-2))
+            .attr('style', 'font-size:' + (gApp._getFontSize()-1))
             .attr('alignment-baseline', 'central')
             .text(function(d) { return d.children?'9':'8';})
             .on('click', function(d, idx, arr) { gApp._itemTreeClick(d);});
@@ -715,18 +677,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 gApp._getSuccessors(d.data.record).then (
                     {
                         success: function(succs) {
-                            //Draw a circle on the end of the first one and make it flash if I can't find the end one
+                            //Draw a circle on the end of the first one and make it flash if I can't find the other end one
                             _.each(succs, function(succ) {
                                 var e = gApp._findTreeNode(gApp._getNodeTreeRecordId(succ));
                                 var zClass = '';
-                                var zoomTree = d3.select('#zoomTree');
-                                //Stuff without end point
-                                var source = d3.select('#rect-'+d.data.Name);
-                                var x0 = source.node().getCTM().e + source.node().getBBox().width - gApp._rowHeight;
-                                var y0 = source.node().getCTM().f + gApp._rowHeight/2 - 
-                                    ((gApp.getSetting('showReleases')?gApp._rowHeight:0) +
-                                     (gApp.getSetting('showTimeLine')?gApp._rowHeight:0));
-
                                 if (!e) { 
                                     zClass += 'textBlink';
                                 } else {
@@ -737,32 +691,50 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                                         zClass += (zClass.length?' ':'') + 'no--errors';
                                     }    
                                 }
-
-                                if (zoomTree.select('#circle-'+d.data.Name).empty()) {
-                                    zoomTree.append('circle')
-                                        .attr('cx', x0)
-                                        .attr('cy', y0)
-                                        .attr('r', 3)
-                                        .attr('id', 'circle-'+d.data.Name)
-                                        .on('mouseover', function(a, idx, arr) {    //'a' refers to the wrong thing!
-                                            gApp._createDepsPopover(d, arr[idx], 1);})    //Default to successors
-                                        .attr('class', zClass);
+                                var zoomTree = d3.select('#zoomTree');
+                                var pathGroup = pathGroup = zoomTree.select('#dep'+ d.data.Name +'-'+ e.data.Name);
+                                if (pathGroup) {
+                                    pathGroup.remove();
                                 }
+                                pathGroup = zoomTree.append('g')
+                                    .attr('id', 'dep'+ d.data.Name +'-'+ e.data.Name)
+                                    .attr('class', zClass);
+
+                                //Stuff without end point
+                                var source = d3.select('#group-'+d.data.Name);
+                                var txf = gApp._parseTransform(source.attr('transform'));
+
+                                /** If we get the group as the item relative to the zoomTree, then we can't get the visible width
+                                 * we get given the bounding box of everything including those not shown because of the clipPath.
+                                 * Get a different object to get the shown width.
+                                 **/
+                                var box = d3.select ('#rect-'+d.data.Name);
+                                var x0 = +txf.translate[0] + box.node().getBBox().width;  //Start at the end of the box
+                                var y0 = +txf.translate[1] + gApp._rowHeight/2; //In the middle of the row
+                                pathGroup.append('circle')
+                                    .attr('cx', x0)
+                                    .attr('cy', y0)
+                                    .attr('r', 3)
+                                    .attr('id', 'circle-'+d.data.Name+'-start')
+                                    .on('mouseover', function(a, idx, arr) {    //'a' refers to the wrong thing!
+                                        gApp._createDepsPopover(d, arr[idx], 1);})    //Default to successors
+                                    .attr('class', zClass);
 
                                 if (!e) {
                                     return;
                                 }
                                 //Stuff that needs endpoint
-                                var target = d3.select('#rect-'+e.data.Name);
-                                var x1 = target.node().getCTM().e - gApp._rowHeight;
-                                var y1 = target.node().getCTM().f + gApp._rowHeight/2 - 
-                                    ((gApp.getSetting('showReleases')?gApp._rowHeight:0) +
-                                     (gApp.getSetting('showTimeLine')?gApp._rowHeight:0));
+                                var target = d3.select('#group-'+e.data.Name);
+                                txf = gApp._parseTransform(target.attr('transform'));
 
-                                zoomTree.append('circle')
+                                var x1 = +txf.translate[0];
+                                var y1 = +txf.translate[1] + gApp._rowHeight/2 ;
+
+                                pathGroup.append('circle')
                                     .attr('cx', x1)
                                     .attr('cy', y1)
                                     .attr('r', 3)
+                                    .attr('id', 'circle-'+e.data.Name+'-end')
                                     .on('mouseover', function(a, idx, arr) { gApp._createDepsPopover(e, arr[idx], 0);})    //Default to successors
                                     .attr('class', zClass);
                                 
@@ -770,13 +742,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                                 
                                 if (    gApp.getSetting('oneTypeOnly') ||  
                                        !gApp.getSetting('lowestDependencies') || 
-                                        d.data.record.get('PortfolioItemType').Ordinal === 0
+                                        (d.data.record.get('PortfolioItemType').Ordinal === 0)
                                 ) {
-                                    zoomTree.append('path')
+                                    pathGroup.append('path')
                                         .attr('d', 
                                             'M' + x0 + ',' + y0 + 
-                                            'C' + (x0+150) + ',' + (y0 + (y1-y0)/8)  +
-                                            ' ' + (x1-150) + ',' + (y1 - (y1-y0)/8) +
+                                            'C' + (x0+80) + ',' + y0  +
+                                            ' ' + (x1-80) + ',' + y1 +
                                             ' ' + x1 + ',' + y1) 
                                         .attr('class', zClass);
                                 }
@@ -786,6 +758,15 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 );
             }
         });
+    },
+
+    _parseTransform: function(a) {
+        var b = {};
+        for (var i in a = a.match(/(\w+)\(([^,)]+),?([^)]+)?\)/gi)) {
+            var c = a[i].match(/[\w\.\-]+/g);
+            b[c.shift()] = c;
+        }
+        return b;
     },
 
     _createDepsPopover: function(node, circ, tabOverride) {
@@ -873,7 +854,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                                 (ypos + this.getSize().height)> gApp.getSize().height ? (gApp.getSize().height - (this.getSize().height+20)) : (ypos+10));  //Tree is rotated
                             setTimeout(function() {
                                 card.hide();
-                            }, 5000);
+                            }, 10000);  //Ten second delay and then switch it off
                         }
                     }
                 });
@@ -1273,7 +1254,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                             //Give it back to the node
                             var d = gApp._findTreeNode(gApp._getNodeTreeRecordId(record));
                             d.data.record = record;
-                            gApp._zoomedStart();
+                            gApp._restart();
                         },
                         failure: function(){
                             console.log("Save on buttonclick failed");
@@ -1285,31 +1266,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 saveButton.disable();
             }
         });
-
-            /**
-             * Create an SVG frame for the various bits on screen.  We want to have three boxes (left to right) to hold
-             * 1. icons for tree manipulation
-             * 2. boxes to represent the items
-             * 3. trailing icons to indicate timebox continuation, etc.
-             **/
-
-            // var svg = d3.select('svg');
-            // svg.append('g')
-            //     .attr('id', 'leftSVG')
-            //     .attr('transform','translate(0,0)') //This starts at the left
-            //     .attr('width', Nik.apps.PortfolioItemTimeline.leftSVGWidth);   
-            // var scaledSVG = svg.append('g')
-            //     .attr('id', 'scaledSVG')
-            //     .attr('transform','translate(' + Nik.apps.PortfolioItemTimeline.leftSVGWidth + ',0)') 
-            //     .attr('width', svg.attr('width') - ( Nik.apps.PortfolioItemTimeline.leftSVGWidth + Nik.apps.PortfolioItemTimeline.rightSVGWidth));
-            // svg.append('g')
-            //     .attr('id', 'rightSVG')
-            //     .attr('transform', 'translate(' + (svg.attr('width') - Nik.apps.PortfolioItemTimeline.leftSVGWidth) + ',0)')
-            //     .attr('width', Nik.apps.PortfolioItemTimeline.rightSVGWidth);
-            
-            // //Now we need some boxes top to bottom to represent things in the scaled area
-            // scaledSVG.append('g')
-            //     .attr('id', 'axisLabels');
     },
 
     _nodes: [],
@@ -1323,7 +1279,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         this.callParent(arguments);
         gApp.timeboxScope = newTimebox;
         gApp._clearNodes();
-        gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+        gApp._kickOff();
     },
 
     _onFilterChange: function(inlineFilterButton){
@@ -1685,9 +1641,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _addSVGTree: function() {
-        var svg = d3.select('svg');
+        var svg = d3.select('#scaledSvg');
         svg.append("g")        
-            .attr("transform","translate(" + gApp._rowHeight + "," +  
+            .attr("transform","translate(0," +  
                 ((gApp.getSetting('showTimeLine')?gApp._rowHeight:0) + (gApp.getSetting('showReleases')?gApp._rowHeight:0)) + ")")
             .attr("id","zoomTree")
             .attr('width', +svg.attr('width') - gApp._rowHeight)
@@ -1725,7 +1681,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         if (d3.select("#staticTree")) {
             d3.select("#staticTree").remove();
         }
-        d3.select('svg').selectAll(".releases").remove();
+        d3.select('#scaledSvg').selectAll(".releases").remove();
 
         //Go through all nodes and kill the cards
         gApp._removeCards();
@@ -1739,11 +1695,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 node.card = null;
             }
         });
-    },
-
-    redrawNodeTree: function() {
-        gApp._removeSVGTree();
-        gApp._enterMainApp();
     },
 
     //Borrowed from sdk-debug.js
@@ -1862,8 +1813,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             {
                 xtype: 'container',
                 itemId: 'rootSurface',
-                // width: this.ownerCt.getWidth(),
-                // height: this.ownerCt.getHeight(),
                 overflowX: 'hidden',
                 overflowY: 'hidden',
                 margin: '5 15 5 5',
@@ -1879,7 +1828,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     launch: function() {
 
-        this.on('redrawNodeTree', this.redrawNodeTree);
+        this.on('redrawNodeTree', function() {
+            d3.select('svg').selectAll('g').remove();
+            this._enterMainApp();
+        });
         this.subscribe(this, Rally.Message.objectUpdate, this._objectUpdated, this);
 
         //We need a way to detect whether we are running in slm or external. Rendering order is different.
@@ -1908,7 +1860,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             update.self.load(update.getId()).then({
                 success: function(record) {
                     d.data.record = record;
-                    gApp._zoomedStart();
+                    gApp._restart();
                 }
             });
     },
