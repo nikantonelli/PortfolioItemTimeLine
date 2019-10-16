@@ -627,14 +627,19 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _setTimeline: function(d) {
-        var dates = gApp._getGroupTranslate(d)
-        if (dates.startX && dates.endX) {
-            gApp._setTimeScaler(
-                dates.startX,
-                dates.endX
-            );
+
+        if (!d) {
+            gApp._startTreeAgain();
+        } else {
+            var dates = gApp._getGroupTranslate(d)
+            if (dates.startX && dates.endX) {
+                gApp._setTimeScaler(
+                    dates.startX,
+                    dates.endX
+                );
+            }
+            gApp._rescaledStart();
         }
-        gApp._rescaledStart();
     },
 
     _dragEnd: function(d, idx, arr) {
@@ -700,6 +705,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _getGroupTranslate: function(node) {
+
+        if (!node) { }
         var data = node.data.record.data;
         var d = {
             startX: null,
