@@ -332,7 +332,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 .attr('width', +scaledSvg.attr('width'))
                 .attr('height', +scaledSvg.attr('height'))
                 .attr('class', 'arrowbox')
-                .on('click', gApp._startTreeAgain);
+                .on('click', gApp._setTimeline);
             
 
         outerSvg.attr('height', parseInt(scaledSvg.attr('height')) + parseInt(axisSvg.attr('height')) + parseInt(timeboxSvg.attr('height')));
@@ -618,11 +618,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _setTimeline: function(d) {
-        gApp._setTimeScaler(
-            new Date(d.data.record.get('PlannedStartDate')),
-            new Date(d.data.record.get('PlannedEndDate'))
-        );
-        gApp._startTreeAgain();
+        var dates = gApp._getGroupTranslate(d)
+        if (dates.startX && dates.endX) {
+            gApp._setTimeScaler(
+                dates.startX,
+                dates.endX
+            );
+        }
+        gApp._rescaledStart();
     },
 
     _dragEnd: function(d, idx, arr) {
@@ -671,7 +674,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _getGroupClass: function(d) {
-        var rClass = 'clickable' + ((d.children || d._children)?' children':'');
+        var rClass = 'node clickable' + ((d.children || d._children)?' children':'');
         if ( d.data.record.data._type.toLowerCase().includes('portfolioitem/')) {
             rClass += ' draggable';
         }
@@ -1874,7 +1877,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _processRecord: function(thread, record) {
         thread.lastCommand = 'readchildren';
-        if (record.get('FormattedID') === 'US75') { debugger;}
         var msg = {
             command: thread.lastCommand,
             objectID: record.get('ObjectID'),
@@ -2113,9 +2115,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         if (d3.select('#dateline')) {
             d3.select('#dateline').remove();
         }
+
         //Go through all nodes and kill the cards
         gApp._removeCards();
 
+        d3.select('#zoomTree').selectAll(".node").remove();
     },
 
     _removeCards: function() {
