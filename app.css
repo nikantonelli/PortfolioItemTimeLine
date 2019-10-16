@@ -25,7 +25,6 @@
 
 .normalText:hover {
   fill: #888;
-  font-family: NotoSans,Helvetica,Arial;
 }
 
 .todaysDate {
@@ -132,11 +131,26 @@ rect.chosenDate {
 text.chosenDate {
   fill: black
 }
+
 .releases {
-  font-size: 1em;
+  font-size: 12pt;
   font-family: NotoSans,Helvetica,Arial;
 
 }
+.iterations {
+  font-size: 12pt;
+  font-family: NotoSans,Helvetica,Arial;
+
+}
+
+.odd {
+  fill: none;
+}
+.even {
+  fill: rgb(116,169,207);
+  opacity: 0.5;
+}
+
 .q0-1{fill:rgb(43,140,190)}
 .q0-2{fill:rgb(43,140,190)}
 .q1-2{fill:rgb(166,189,219)} 

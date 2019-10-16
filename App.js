@@ -12,6 +12,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             showTimeLine: true,
             scaleToItems: true,
             showReleases: true,
+            showIterations: true,
             allowMultiSelect: false,
             showFilter: true,
             onlyDependencies: false,
@@ -79,6 +80,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 name: 'showReleases',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Releases at top',
+                labelAlign: 'top'
+            },
+            {
+                name: 'showIterations',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show Iterations at top',
                 labelAlign: 'top'
             },
             {
@@ -190,6 +197,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             'Ready',
             'Release',
             'RevisionHistory',
+            'ScheduleState',
             'StartDate',
             'State',
             'Successors',
@@ -297,7 +305,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         var timeboxSvg = scaledSvg.append('g')    /* This group is defined, but left blank so that we can overwrite with the dates */
             .attr('id', 'timeboxSvg');
 
-        timeboxSvg.attr('height', gApp.getSetting('showReleases')?gApp.self.TimeboxSVGHeight:0)     /* Leave space for dates */
+        timeboxSvg.attr('height', (gApp.getSetting('showReleases')?gApp.self.TimeboxSVGHeight:0)+(gApp.getSetting('showIterations')?gApp.self.TimeboxSVGHeight:0))     /* Leave space for dates */
             .attr('transform', 'translate(0,' + axisSvg.attr('height') + ')');    /* Place it after the axisSvg */
 
         
@@ -360,25 +368,19 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
         var timeBegin = null;
         var timeEnd = null;
-
-        _.each( gApp._nodes, function(node) {
+        gApp._nodeTree.each( function(node) {
 
             /** Check the type of artefact: Portfolio items use PlannedStartDate, PlannedEndDate
              * Userstories use iteration dates if no AcceptedDate, or InProgressDate, AcceptedDate if valid
              * Defects will do the same
              * */
-            var data = node.record.data;
             var dateStart = null;
             var dateEnd = null;
-            var type = data._type.toLowerCase();
 
-            if (type.includes('portfolioitem/')) {
-                dateStart = node.record.data.PlannedStartDate ? new Date(node.record.data.PlannedStartDate) : null;
-                dateEnd = node.record.data.PlannedEndDate ? new Date(node.record.data.PlannedEndDate) : null;
-            }
-            else if ( (type.toLowerCase() === 'defect') || (type === 'hierarchicalrequirement')) {
-                if ( data.AcceptedDate !== null) {}
-            }
+            var dates = gApp._getGroupTranslate(node);
+            dateStart = dates.startX;
+            dateEnd = dates.endX;
+        
             if ((timeBegin === null) || ((dateStart !== null) && (dateStart < timeBegin))) { timeBegin = dateStart;}
             if ((timeEnd   === null) || ((dateEnd   !== null) && (dateEnd   > timeEnd  ))) { timeEnd   = dateEnd  ;}
         });
@@ -396,6 +398,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             timeBegin = dateRange[0] || timeBegin;        
             timeEnd = dateRange[1] || timeEnd;
         }
+        console.log('Initialising Scale to: ', timeBegin, timeEnd);
         gApp._setTimeScaler(timeBegin,timeEnd);
     },
 
@@ -425,11 +428,51 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     _restart: function() {
         gApp._addSVGTree();
         if (gApp.getSetting('showReleases')) { gApp._getReleases(); }
+        if (gApp.getSetting('showIterations')) { gApp._getIterations(); }
         gApp._refreshTree();
     },
 
+    _getIterations: function() {
+        Ext.create('Rally.data.wsapi.Store', {
+            model: 'Iteration',
+            autoLoad: true,
+            context: {
+                projectScopeDown: false,
+                projectScopeUp: false
+            },
+            filters: [
+                {
+                    property: 'EndDate',
+                    operator: '>',
+                    value: gApp.dateScaler.invert(0)
+                },
+                {
+                    property: 'StartDate',
+                    operator: '<',
+                    value: gApp.dateScaler.invert(+d3.select('#scaledSvg').attr('width'))
+                }
+
+            ],
+            sorters: [
+
+                {
+                    property: 'StartDate',
+                    direction: 'ASC'
+                }
+            ],
+            listeners: {
+                load: function(store, records, opts) {
+                    if (store.getRecords().length) {
+                        gApp._setIterations(records);
+                    }
+                }
+            }
+        });
+    },
+
+
     _getReleases: function() {
-        var releases = Ext.create('Rally.data.wsapi.Store', {
+        Ext.create('Rally.data.wsapi.Store', {
             model: 'Release',
             autoLoad: true,
             context: {
@@ -448,6 +491,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                     value: gApp.dateScaler.invert(+d3.select('#scaledSvg').attr('width'))
                 }
 
+            ],
+            sorters: [
+
+                {
+                    property: 'ReleaseStartDate',
+                    direction: 'ASC'
+                }
             ],
             listeners: {
                 load: function(store, records, opts) {
@@ -476,7 +526,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             return 'translate(' + rel.x + ',0)';}   //Move over by 2px and make 2px smaller in width below
         );
         relGroups.append('rect')
-            .attr('height', gApp.self.TimeboxSVGHeight)
+            .attr('height', d3.select('svg').attr('height'))
             .attr('width', function(rel) {
                 var end = gApp.dateScaler(new Date(rel.get('ReleaseDate')));
                 end = (d3.select('#scaledSvg').attr('width')<end)?d3.select('#scaledSvg').attr('width'):end;
@@ -484,17 +534,62 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 return rel.width<4?2:rel.width-2;
             })
             .attr('class', function( rel, idx, arr) {
-                return 'q' + idx + '-' + (arr.length%5);
-            });
+                return 'q' + (idx%2) + '-' + 2;
+            })
+            .attr('opacity', gApp.getSetting('showIterations')?0.3:0.5);
         relGroups.append('text')
             .attr('x', function(rel) { return rel.width/2;})
             .attr('y', function(rel) {
                 return (gApp.self.TimeboxSVGHeight/2);
             })
             .attr('class', 'normalText')
-            .attr('style', 'font-size:' + gApp.self.TimeboxSVGHeight/2) //Smallest font of 10
+//            .attr('style', 'font-size:' + gApp.self.TimeboxSVGHeight/2) //Smallest font of 10
             .text( function(rel) {
-                return (rel.width > 80)? rel.get('Name'): '';
+                var title = rel.get('Name')
+                return (rel.width > 80)? title: ((rel.width > 60)?(title.substr(1,3) + '...' + title.substr(-3,3)):'');
+            })
+            .style("text-anchor", 'middle')
+            .attr('alignment-baseline', 'central');
+
+    },
+
+    _setIterations: function(records) {
+        
+        if (d3.select('#iterationGroup')) {
+            d3.select('#iterationGroup').remove();
+        }
+        var iterGroup = d3.select('#timeboxSvg').append('g')
+            .attr('id',"iterationGroup");
+        var iterGroups = iterGroup.selectAll('.iterations').data(records)
+            .enter().append('g')
+            .attr('class', 'iterations');
+
+        iterGroups.attr('transform', function(rel) {
+            rel.x = gApp.dateScaler(new Date(rel.get('StartDate')));
+            rel.x = (rel.x<0?0:rel.x) ;
+            return 'translate(' + rel.x + ',' + (gApp.getSetting('showReleases')?gApp.self.TimeboxSVGHeight:'0') +')';}   //Move over by 2px and make 2px smaller in width below
+        );
+        iterGroups.append('rect')
+            .attr('height', d3.select('svg').attr('height'))
+            .attr('width', function(rel) {
+                var end = gApp.dateScaler(new Date(rel.get('EndDate')));
+                end = (d3.select('#scaledSvg').attr('width')<end)?d3.select('#scaledSvg').attr('width'):end;
+                rel.width = end - rel.x;
+                return rel.width<4?2:rel.width-2;
+            })
+            .attr('class', function( rel, idx, arr) {
+                return idx%2 ? 'odd': 'even';
+            });
+        iterGroups.append('text')
+            .attr('x', function(rel) { return rel.width/2;})
+            .attr('y', function(rel) {
+                return (gApp.self.TimeboxSVGHeight/2);
+            })
+            .attr('class', 'normalText')
+//            .attr('style', 'font-size:' + gApp.self.TimeboxSVGHeight/2) //Smallest font of 10
+            .text( function(rel) {
+                var title = rel.get('Name')
+                return (rel.width > 80)? title: ((rel.width > 60)?(title.substr(1,3) + '...' + title.substr(-3,3)):'');
             })
             .style("text-anchor", 'middle')
             .attr('alignment-baseline', 'central');
@@ -590,16 +685,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         };
 
         if (data._type.toLowerCase().includes('portfolioitem/')){
-            d.startX = new Date(data.PlannedStartDate);
-            d.endX = new Date(data.PlannedEndDate);
+            d.startX = data.PlannedStartDate?new Date(data.PlannedStartDate):null;
+            d.endX = data.PlannedEndDate?new Date(data.PlannedEndDate):null;
         }
         else if (data.Iteration) {
-            d.startX = new Date( data.Iteration.StartDate);
-            d.endX = new Date(data.Iteration.EndDate);
+            d.startX = data.Iteration.StartDate? new Date( data.Iteration.StartDate):null;
+            d.endX = data.Iteration.EndDate?new Date(data.Iteration.EndDate):null;
         }
-        else if (data.AcceptedDate) {
-            d.startX = new Date(data.InProgressDate);
-            d.endX = new Date(data.AcceptedDate);
+        else {
+            d.startX = data.InProgressDate?new Date(data.InProgressDate):null;
+            d.endX = data.AcceptedDate?new Date(data.AcceptedDate):null;
         }
         return d;
         
