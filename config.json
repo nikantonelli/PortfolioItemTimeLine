@@ -8,7 +8,8 @@
         "DateMixin.js",
         "CFDChart.js",
         "CFDCalc.js",
-        "d3.js"
+        "d3.js",
+        "worker.js"
     ],
     "css": [
         "app.css"

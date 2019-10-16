@@ -10,33 +10,47 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         defaultSettings: {
             hideArchived: true,
             showTimeLine: true,
-            scaleToItems: false,
+            scaleToItems: true,
             showReleases: true,
             allowMultiSelect: false,
             showFilter: true,
             onlyDependencies: false,
             lowestDependencies: false,
             pointsOrCount: false,
-            oneTypeOnly: true,
+            oneTypeOnly: false,
             cardHover: true,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
             lineSize: 22,
             sortByTeam: true,
+            includeStories: true,
+            includeDefects: false,
+            includeTasks: false,
+ 
         }
     },
 
-    inheritableStatics: {
-        leftSVGWidth: 100,
-        rightSVGWidth: 50
+    statics: {
+        //Be aware that each thread might kick off more than one activity. Currently, it could do three for a user story.
+        MAX_THREAD_COUNT: 32,  //More memory and more network usage the higher you go.
+        LeftSVGWidth: 100,
+        RightSVGWidth: 50,
+        AxisSVGHeight: 30,
+        TimeboxSVGHeight: 30
     },
+
+    //All these can have dates.
+    _defectModel: null,
+    _userStoryModel: null,
+    _taskModel: null,
+    _portfolioItemModels: {},
 
     listeners: {
         afterrender: function(item) { 
             item.on('resize', function() {
                 gApp = item; 
-                d3.select('svg').selectAll('g').remove();
-                gApp._enterMainApp();
+                console.log('Resizing to: ' + item.getSize().width + ',' + item.getSize().height);
+                gApp._restartMainApp(gApp._nodeTree);
             });
         }
     },
@@ -62,9 +76,15 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 labelAlign: 'top'
             },
             {
-                    name: 'showReleases',
+                name: 'showReleases',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Releases at top',
+                labelAlign: 'top'
+            },
+            {
+                name: 'includeStories',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show Stories',
                 labelAlign: 'top'
             },
             {
@@ -132,69 +152,75 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     _changedItems: [],
 
     itemId: 'rallyApp',
-        MIN_COLUMN_WIDTH:   200,        //Looks silly on less than this
-        STORE_FETCH_FIELD_LIST:
-            [
-                'ActualEndDate',
-                'ActualStartDate',
-                'Blocked',
-                'BlockedReason',
-                'Children',
-                'CreationDate',
-                'Description',
-                'DisplayColor',
-                'DragAndDropRank',
-                'FormattedID',
-                'Iteration',
-                'Milestones',
-                'Name',
-                'Notes',
-                'ObjectID',
-                'OrderIndex', 
-                'Ordinal',
-                'Owner',
-                'Parent',
-                'PercentDoneByStoryCount',
-                'PercentDoneByStoryPlanEstimate',
-                'PlannedEndDate',
-                'PlannedStartDate',
-                'PortfolioItemType',
-                'Predecessors',
-                'PredecessorsAndSuccessors',
-                'PreliminaryEstimate',
-                'Project',
-                'Ready',
-                'Release',
-                'RevisionHistory',
-                'State',
-                'Successors',
-                'Tags',
-                'Workspace',
-                                //Customer specific after here. Delete as appropriate
-                // 'c_ProjectIDOBN',
-                // 'c_QRWP',
-                // 'c_ProgressUpdate',
-                // 'c_RAIDSeverityCriticality',
-                // 'c_RISKProbabilityLevel',
-                // 'c_RAIDRequestStatus'   
-            ],
-        CARD_DISPLAY_FIELD_LIST:
-            [
-                'Name',
-                'Owner',
-                'PreliminaryEstimate',
-                'Parent',
-                'Project',
-                'PercentDoneByStoryCount',
-                'PercentDoneByStoryPlanEstimate',
-                'PlannedStartDate',
-                'PlannedEndDate',
-                'State',
-                //Customer specific after here. Delete as appropriate
-                // 'c_ProjectIDOBN',
-                // 'c_QRWP'
+    CARD_WIDTH:   200,        //Looks silly on less than this
+    STORE_FETCH_FIELD_LIST:
+        [
+            'AcceptedDate',     //For userstories and defects
+            'ActualEndDate',
+            'ActualStartDate',
+            'Blocked',
+            'BlockedReason',
+            'Children',
+            'CreationDate',
+            'Description',
+            'DisplayColor',
+            'DragAndDropRank',
+            'EndDate',
+            'FormattedID',
+            'InProgressDate',   //For userstories and defects
+            'Iteration',
+            'Milestones',
+            'Name',
+            'Notes',
+            'ObjectID',
+            'OrderIndex', 
+            'Ordinal',
+            'Owner',
+            'Parent',
+            'PercentDoneByStoryCount',
+            'PercentDoneByStoryPlanEstimate',
+            'PlannedEndDate',
+            'PlannedStartDate',
+            'PortfolioItem',    //For userstories
+            'PortfolioItemType',
+            'Predecessors',
+            'PredecessorsAndSuccessors',
+            'PreliminaryEstimate',
+            'Project',
+            'Ready',
+            'Release',
+            'RevisionHistory',
+            'StartDate',
+            'State',
+            'Successors',
+            'Tags',
+            'UserStories',  //Children of Features
+            'Workspace',
+                            //Customer specific after here. Delete as appropriate
+            // 'c_ProjectIDOBN',
+            // 'c_QRWP',
+            // 'c_ProgressUpdate',
+            // 'c_RAIDSeverityCriticality',
+            // 'c_RISKProbabilityLevel',
+            // 'c_RAIDRequestStatus'   
+        ],
+    CARD_DISPLAY_FIELD_LIST:
+        [
+            'Name',
+            'Owner',
+            'PreliminaryEstimate',
+            'Parent',
+            'Project',
+            'PercentDoneByStoryCount',
+            'PercentDoneByStoryPlanEstimate',
+            'PlannedStartDate',
+            'PlannedEndDate',
+            'State',
+            //Customer specific after here. Delete as appropriate
+            // 'c_ProjectIDOBN',
+            // 'c_QRWP'
 
-            ],
+        ],
 
     timer: null,
     
@@ -207,48 +233,94 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     //Continuation point after selectors ready/changed
     _enterMainApp: function() {
+        //Get all the nodes and the "Unknown" parent virtual nodes
+        var nodetree = gApp._createNodeTree(gApp._nodes);
+        gApp._rowHeight = gApp.getSetting('lineSize') || 22;
+        gApp._restartMainApp(nodetree);
+    },
+
+    /*  We need to force a redraw for a window resize. Remove all the svg items and start again. */
+    _restartMainApp: function(nodetree) {
         if (gApp._nodes.length === 0 ) { return; }  //Timer can fire before we have done anything
         var outerSvg = d3.select('svg');
         outerSvg.attr('width', this.getWidth()- 50);
         outerSvg.attr('height', this.getHeight() - 50);
-        gApp._rowHeight = gApp.getSetting('lineSize') || 20;
-        //Get all the nodes and the "Unknown" parent virtual nodes
-        var nodetree = gApp._createNodeTree(gApp._nodes);
+
 
         /**
          * Create an SVG frame for the various bits on screen.  We want to have three boxes (left to right) to hold
          * 1. icons for tree manipulation
          * 2. boxes to represent the items
          * 3. trailing icons to indicate timebox continuation, etc.
+         * 
+         * All these groups are selectable through d3, therefore not global here. Use d3.select('#scaledSvg')
+         * 
+         * You have to get the order of the creation correct so that the clicks get to the right objects.
+         * 
          **/
 
-        outerSvg.append('g')
-            .attr('id', 'leftSVG')
-            .attr('transform','translate(0,0)') //This starts at the left
-            .attr('width', Nik.apps.PortfolioItemTimeline.leftSVGWidth);   
-        var scaledSvg = outerSvg.append('g')
-            .attr('id', 'scaledSvg')
-            .attr('transform','translate(' + Nik.apps.PortfolioItemTimeline.leftSVGWidth + ',0)') 
-            .attr('width', outerSvg.attr('width') - ( Nik.apps.PortfolioItemTimeline.leftSVGWidth + Nik.apps.PortfolioItemTimeline.rightSVGWidth));
-        outerSvg.append('g')
-            .attr('id', 'rightSVG')
-            .attr('transform', 'translate(' + (outerSvg.attr('width') - Nik.apps.PortfolioItemTimeline.leftSVGWidth) + ',0)')
-            .attr('width', Nik.apps.PortfolioItemTimeline.rightSVGWidth);
-        
-        //Now we need some boxes top to bottom to represent things in the scaled area
-        scaledSvg.append('g')
-            .attr('id', 'axisLabels');
+        if ( d3.select('#leftSvg')) {
+            d3.select('#leftSvg').remove();
+        }
+        if ( d3.select('#scaledSvg')) {
+            d3.select('#scaledSvg').remove();
+        }
+        if ( d3.select('#rightSvg')) {
+            d3.select('#rightSvg').remove();
+        }
+        var leftSvg = outerSvg.append('g')
+            .attr('id', 'leftSvg');
 
-        outerSvg.attr('height', gApp._rowHeight * 
-            (nodetree.value + 
-            (gApp.getSetting('showTimeLine')?1:0) +     //Leave space for dates
-            (gApp.getSetting('showReleases')?1:0))      //Leave space for releases
-        );
-        scaledSvg.attr('height', outerSvg.attr('height'));
-        //Make surface the size available in the viewport (minus the selectors and margins)
+        leftSvg.attr('transform','translate(0,0)') //This starts at the left
+            .attr('width', gApp.self.LeftSVGWidth);  
+
+        var scaledSvg = outerSvg.append('g')
+            .attr('id', 'scaledSvg');
+
+        var rightSvg = outerSvg.append('g')
+            .attr('id', 'rightSvg');
+
+        rightSvg.attr('transform', 'translate(' + (outerSvg.attr('width') - gApp.self.RightSVGWidth) + ',0)')
+            .attr('width', gApp.self.RightSVGWidth);
+        
+        /* Now we need some boxes top to bottom to represent things in the scaled area */
+
+        /* TYhe axisSvg is to leave a clear space at the top for the date labels before we calculate how much space we need.
+         * It should never be used for any drawing.... only for calculating a space prior to drawing the date axis.
+         */
+
+        var axisSvg = scaledSvg.append('g')
+            .attr('id', 'axisSvg')
+            .attr('height', gApp.getSetting('showTimeLine')?gApp.self.AxisSVGHeight:0)
+            .attr('transform', 'translate(0,0)');
+
+        var timeboxSvg = scaledSvg.append('g')    /* This group is defined, but left blank so that we can overwrite with the dates */
+            .attr('id', 'timeboxSvg');
+
+        timeboxSvg.attr('height', gApp.getSetting('showReleases')?gApp.self.TimeboxSVGHeight:0)     /* Leave space for dates */
+            .attr('transform', 'translate(0,' + axisSvg.attr('height') + ')');    /* Place it after the axisSvg */
+
+        
+        scaledSvg.attr('height', gApp._rowHeight *  nodetree.value)
+            .attr('width', outerSvg.attr('width') - ( gApp.self.LeftSVGWidth + gApp.self.RightSVGWidth))
+            .attr('transform', 'translate(' + gApp.self.LeftSVGWidth + ',0)');
+        
+        scaledSvg.append("g")        
+                .attr("id","zoomTree")
+                .attr('transform','translate(0,' + (parseInt(d3.select('#axisSvg').attr('height')) + parseInt(d3.select('#timeboxSvg').attr('height'))) +')')
+                .attr('width', +scaledSvg.attr('width'))
+                .attr('height', +scaledSvg.attr('height'))
+                .append('rect')
+                .attr('width', +scaledSvg.attr('width'))
+                .attr('height', +scaledSvg.attr('height'))
+                .attr('class', 'arrowbox')
+                .on('click', gApp._startTreeAgain);
+            
+
+        outerSvg.attr('height', parseInt(scaledSvg.attr('height')) + parseInt(axisSvg.attr('height')) + parseInt(timeboxSvg.attr('height')));
+
         var rs = this.down('#rootSurface');
         rs.getEl().setHeight(outerSvg.attr('height'));
-//        svg.attr('width', rs.getEl().getWidth());
         outerSvg.attr('class', 'rootSurface');
 
         gApp._startTreeAgain();
@@ -266,10 +338,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             d.value = d._value;
             d._value = 1;
         }
+        gApp._removeSVGTree();
         gApp._restart();
     },
 
-    _itemTreeClick: function(d, nodeTree) {
+    _itemTreeClick: function(d) {
         var me = this;
         if (d3.event.shiftKey === false) {
             me._switchChildren(d);
@@ -289,8 +362,23 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         var timeEnd = null;
 
         _.each( gApp._nodes, function(node) {
-            var dateStart = node.record.data.PlannedStartDate ? new Date(node.record.data.PlannedStartDate) : null;
-            var dateEnd = node.record.data.PlannedEndDate ? new Date(node.record.data.PlannedEndDate) : null;
+
+            /** Check the type of artefact: Portfolio items use PlannedStartDate, PlannedEndDate
+             * Userstories use iteration dates if no AcceptedDate, or InProgressDate, AcceptedDate if valid
+             * Defects will do the same
+             * */
+            var data = node.record.data;
+            var dateStart = null;
+            var dateEnd = null;
+            var type = data._type.toLowerCase();
+
+            if (type.includes('portfolioitem/')) {
+                dateStart = node.record.data.PlannedStartDate ? new Date(node.record.data.PlannedStartDate) : null;
+                dateEnd = node.record.data.PlannedEndDate ? new Date(node.record.data.PlannedEndDate) : null;
+            }
+            else if ( (type.toLowerCase() === 'defect') || (type === 'hierarchicalrequirement')) {
+                if ( data.AcceptedDate !== null) {}
+            }
             if ((timeBegin === null) || ((dateStart !== null) && (dateStart < timeBegin))) { timeBegin = dateStart;}
             if ((timeEnd   === null) || ((dateEnd   !== null) && (dateEnd   > timeEnd  ))) { timeEnd   = dateEnd  ;}
         });
@@ -316,28 +404,25 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .domain([
                 timebegin, timeend
             ])
-            .range([0, +d3.select('#scaledSvg').attr('width') - (gApp._rowHeight + 10)]);
+            .range([0, +d3.select('#scaledSvg').attr('width') ]);
     },
 
     _setAxis: function() {
         if (gApp.gX) { gApp.gX.remove(); }
         var svg = d3.select('#scaledSvg');
         var width = +svg.attr('width');
-        var height = +svg.attr('height');
+        /* The height is that of the total svg not just the scaled one */
+        var height = +d3.select('svg').attr('height');
         gApp.xAxis = d3.axisBottom(gApp.dateScaler)
-            .ticks(( (width -gApp._rowHeight)+ 2)/80)
+            .ticks((width + 2)/80)
             .tickSize(height)
             .tickPadding(gApp.getSetting('showTimeLine')? (8 - height):0);
-        gApp.gX  = d3.select('#scaledSvg').append('g');
-        gApp.gX.attr('id','axisBox')
-            .attr('width', width)
-            .attr('height', height)
-            .attr("class", 'axis')
+        gApp.gX  = d3.select('#axisSvg').append('g');
+        gApp.gX.attr("class", 'axis')
             .call(gApp.xAxis);    
     },
 
     _restart: function() {
-        gApp._removeSVGTree();
         gApp._addSVGTree();
         if (gApp.getSetting('showReleases')) { gApp._getReleases(); }
         gApp._refreshTree();
@@ -374,19 +459,24 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         });
     },
 
-    _setReleases: function(releases) {
-        var relGroups = d3.select('#scaledSvg').selectAll(".releases").data(releases)
+    _setReleases: function(records) {
+        
+        if (d3.select('#releaseGroup')) {
+            d3.select('#releaseGroup').remove();
+        }
+        var relGroup = d3.select('#timeboxSvg').append('g')
+            .attr('id',"releaseGroup");
+        var relGroups = relGroup.selectAll('.releases').data(records)
             .enter().append('g')
             .attr('class', 'releases');
 
         relGroups.attr('transform', function(rel) {
             rel.x = gApp.dateScaler(new Date(rel.get('ReleaseStartDate')));
             rel.x = (rel.x<0?0:rel.x) ;
-            return 'translate(' + (rel.x + gApp._rowHeight) + ',0)';}   //Move over by 2px and make 2px smaller in width below
+            return 'translate(' + rel.x + ',0)';}   //Move over by 2px and make 2px smaller in width below
         );
         relGroups.append('rect')
-            .attr('y', gApp._rowHeight)
-            .attr('height', gApp._rowHeight)
+            .attr('height', gApp.self.TimeboxSVGHeight)
             .attr('width', function(rel) {
                 var end = gApp.dateScaler(new Date(rel.get('ReleaseDate')));
                 end = (d3.select('#scaledSvg').attr('width')<end)?d3.select('#scaledSvg').attr('width'):end;
@@ -399,11 +489,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         relGroups.append('text')
             .attr('x', function(rel) { return rel.width/2;})
             .attr('y', function(rel) {
-                return (gApp._rowHeight/2) +
-                    (gApp.getSetting('showTimeLine')?gApp._rowHeight:0);
-                })
+                return (gApp.self.TimeboxSVGHeight/2);
+            })
             .attr('class', 'normalText')
-            .attr('style', 'font-size:' + gApp._getFontSize()) //Smallest font of 10
+            .attr('style', 'font-size:' + gApp.self.TimeboxSVGHeight/2) //Smallest font of 10
             .text( function(rel) {
                 return (rel.width > 80)? rel.get('Name'): '';
             })
@@ -412,22 +501,15 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     },
 
-    _rescaledStart: function() {
-        gApp._setAxis();
-        gApp._restart();
-    },
-
-    _startTreeAgain: function()
-    {
+    _startTreeAgain: function() {
         gApp._initialiseScale();
         gApp._rescaledStart();
-    },
 
-    _indexTree: function(nodetree) {
-        nodetree.eachBefore(function(d) {
-            d.rheight = d.x1 - d.x0;
-            d.rpos = d.x0 - (d.parent?d.parent.x0:0); //Deal with root node
-        });
+    },
+    _rescaledStart: function() {
+        gApp._removeSVGTree();
+        gApp._setAxis();
+        gApp._restart();
     },
 
     _setTimeline: function(d) {
@@ -435,7 +517,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             new Date(d.data.record.get('PlannedStartDate')),
             new Date(d.data.record.get('PlannedEndDate'))
         );
-        gApp._rescaledStart();
+        gApp._startTreeAgain();
     },
 
     _dragEnd: function(d, idx, arr) {
@@ -470,7 +552,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             Ext.Date.add( new Date( d.data.record.get('PlannedEndDate')), Ext.Date.MILLI,
             gApp.dateScaler.invert(d3.event.x) - gApp.dateScaler.invert(d.dragInitStart));
         var rClass = 'clickable draggable' + ((d.children || d._children)?' children':'');
-        if (gApp._checkSchedule(d, d.dragStart, d.dragEnd)) {
+        if (gApp._schedulingErrors(d, d.dragStart, d.dragEnd)) {
             rClass += ' data--errors';
         }
         arr[idx].setAttribute('class', rClass);
@@ -479,32 +561,52 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         arr[idx].getElementsByClassName('dragTarget')[0].setAttribute('width', d.drawnWidth);
     },
 
-    _getSVGHeight: function() {
-        return parseInt(d3.select('#scaledSvg').attr('height')) - 
-            (gApp.getSetting('showTimeLine')?gApp._rowHeight:0) -
-            (gApp.getSetting('showReleases')?gApp._rowHeight:0);
-    },
-
     _itemMenu: function(d) {
         Rally.nav.Manager.edit(d.data.record);
     },
 
     _getGroupClass: function(d) {
-        var rClass = 'clickable draggable' + ((d.children || d._children)?' children':'');
-        if (gApp._checkSchedule(d)) {
+        var rClass = 'clickable' + ((d.children || d._children)?' children':'');
+        if ( d.data.record.data._type.toLowerCase().includes('portfolioitem/')) {
+            rClass += ' draggable';
+        }
+        if (gApp._schedulingErrors(d)) {
             rClass += ' data--errors';
         }
         return rClass;
     },
 
     _initGroupTranslate: function(d) {
-        d.startX = new Date(d.data.record.get('PlannedStartDate'));
-        d.endX = new Date(d.data.record.get('PlannedEndDate'));
+        var dates = gApp._getGroupTranslate(d);
+        d.startX = dates.startX;
+        d.endX = dates.endX;
+    },
 
+    _getGroupTranslate: function(node) {
+        var data = node.data.record.data;
+        var d = {
+            startX: null,
+            endX: null
+        };
+
+        if (data._type.toLowerCase().includes('portfolioitem/')){
+            d.startX = new Date(data.PlannedStartDate);
+            d.endX = new Date(data.PlannedEndDate);
+        }
+        else if (data.Iteration) {
+            d.startX = new Date( data.Iteration.StartDate);
+            d.endX = new Date(data.Iteration.EndDate);
+        }
+        else if (data.AcceptedDate) {
+            d.startX = new Date(data.InProgressDate);
+            d.endX = new Date(data.AcceptedDate);
+        }
+        return d;
+        
     },
 
     _setGroupTranslate: function(d, start, end){
-        var svgHeight = gApp._getSVGHeight();
+        var svgHeight = d3.select('#scaledSvg').attr('height');
         var x = gApp.dateScaler(start);
         var e = gApp.dateScaler(end);
         d.drawnX = (x<0?0:x);
@@ -521,15 +623,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _refreshTree: function(){
 
-        var svgWidth = parseInt(d3.select('#scaledSvg').attr('width')) - gApp._rowHeight;
-        var nodetree = gApp._nodeTree;
-        var healthField = gApp.getSetting('pointsOrCount')?'PercentDoneByStoryCount':'PercentDoneByStoryPlanEstimate';
-
+        console.log(gApp._nodeTree);
+        var svgWidth = +d3.select('#scaledSvg').attr('width');
         var partition = d3.partition();
-
-        nodetree = partition(nodetree);
-        gApp._indexTree(nodetree);
+        var nodetree = partition(gApp._nodeTree);
+        var healthField = gApp.getSetting('pointsOrCount')?'PercentDoneByStoryCount':'PercentDoneByStoryPlanEstimate';
         
+        nodetree.eachBefore(gApp._initGroupTranslate);
+
         //When we come here and the "oneTypeOnly flag is set, we will have a 'root' node with no data
         //We need to ignore this and not draw anything", so we use 'filter' to remove
         
@@ -542,10 +643,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                     return true;
                 }
             ).append("g")
-                .attr('class', gApp._getGroupClass)
+                .attr('class', gApp._getGroupClass) //Call it directly, allowing d3 to pass in node
                 .attr('id', function(d) { return 'group-' + d.data.Name;})
                 .attr( 'transform', function(d) {
-                    gApp._initGroupTranslate(d);
                     var gt = gApp._setGroupTranslate(d, d.startX, d.endX);
                     //Store for later use after we have calculated it
                     d.iX = d.x;
@@ -559,26 +659,47 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                     .on('start', gApp._dragStart)
                 );
 
-            var defs = node.append('defs')
-                .append('linearGradient')
-                .attr('id', function(d) {
-                    return 'lg' + d.data.record.get('FormattedID');
-                });
+        var defs = node.append('defs')
+            .append('linearGradient')
+            .attr('id', function(d) {
+                return 'lg' + d.data.record.get('FormattedID');
+            });
 
-                defs.append('stop')
-                .attr('offset', function(d) {
+            defs.append('stop')
+            .attr('offset', function(d) {
+                if (d.data.record.data._type.toLowerCase().includes('portfolioitem/')) {
                     return (d.data.record.get(healthField)*100).toString() + "%";
-                })
-                .attr('stop-color', function(d) { 
+                }
+                else {
+                    return '100%';
+                }
+            })
+            .attr('stop-color', function(d) { 
+                if (d.data.record.data._type.toLowerCase().includes('portfolioitem/')) {
                     return gApp.calculateHealthColorForPortfolioItemData(d.data.record.data, healthField ); 
-                });
+                }
+                else {
+                    if ( d.data.record.data.AcceptedDate) {
+                        return '#e0e0e0';
+                    }
+                    else {
+                        return '#ffffff';
+                    }
+                }
 
-                defs.append('stop')
-                .attr('offset', function(d) {
+            });
+
+            defs.append('stop')
+            .attr('offset', function(d) {
+                if (d.data.record.data._type.toLowerCase().includes('portfolioitem/')) {
                     return (d.data.record.get(healthField)*100).toString() + "%";
-                })
-                .attr('stop-color', "#fff");
-                defs.append('opacity', 0.5);
+                }
+                else {
+                    return '100%';
+                }
+            })
+            .attr('stop-color', "#fff");
+            defs.append('opacity', 0.5);
                 
 
         var drags = node.append('rect')
@@ -626,7 +747,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .attr('style', 'font-size:' + (gApp._getFontSize() - 2))
             .attr('class', function(d) {
                 var lClass = 'icon-gear';
-                if ( !d.data.record.get('PlannedStartDate') || !d.data.record.get('PlannedEndDate')){
+                if ( !d.startX|| !d.endX){
                     lClass = 'error ' + lClass;
                 }
                 return lClass;
@@ -654,11 +775,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .text(function(d) { return d.data.record.get('FormattedID') + ": " + d.data.record.get('Name');});
             
         d3.selectAll('.children').append('text')
-            .attr('x', function(d) { return -(gApp._rowHeight + d.drawnX);})   //Leave space for up/down arrow
+            .attr('x', function(d) { return -(gApp._rowHeight);})   //Leave space for up/down arrow
             .attr('y', gApp._rowHeight/2)
             .attr('class', function(d) {
                 var lClass = 'icon-gear app-menu';
-                if ( !d.data.record.get('PlannedStartDate') || !d.data.record.get('PlannedEndDate')){
+                if ( !d.startX || !d.endX){
                     lClass = 'error ' + lClass;
                 }
                 return lClass;
@@ -680,10 +801,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                             //Draw a circle on the end of the first one and make it flash if I can't find the other end one
                             _.each(succs, function(succ) {
                                 var e = gApp._findTreeNode(gApp._getNodeTreeRecordId(succ));
-                                var zClass = '';
+                                var targetName = 'Unknown';
+                                var zClass = 'dependencyGroup';
                                 if (!e) { 
-                                    zClass += 'textBlink';
+                                    zClass += ' textBlink';
                                 } else {
+                                    targetName = e.data.Name;
                                     if (gApp._sequenceError( d, e)) {
                                         zClass += (zClass.length?' ':'') + 'data--errors';
                                     }
@@ -692,12 +815,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                                     }    
                                 }
                                 var zoomTree = d3.select('#zoomTree');
-                                var pathGroup = pathGroup = zoomTree.select('#dep'+ d.data.Name +'-'+ e.data.Name);
+                                var pathGroup = zoomTree.select('#dep'+ d.data.Name +'-'+ targetName);
                                 if (pathGroup) {
                                     pathGroup.remove();
                                 }
                                 pathGroup = zoomTree.append('g')
-                                    .attr('id', 'dep'+ d.data.Name +'-'+ e.data.Name)
+                                    .attr('id', 'dep'+ d.data.Name +'-'+ targetName)
+                                    .attr('visibility', gApp.down('#showDeps').value?'visible': 'hidden')
                                     .attr('class', zClass);
 
                                 //Stuff without end point
@@ -720,37 +844,37 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                                         gApp._createDepsPopover(d, arr[idx], 1);})    //Default to successors
                                     .attr('class', zClass);
 
-                                if (!e) {
-                                    return;
-                                }
-                                //Stuff that needs endpoint
-                                var target = d3.select('#group-'+e.data.Name);
-                                txf = gApp._parseTransform(target.attr('transform'));
+                                if (e) {
+                                    //Stuff that needs endpoint
+                                    var target = d3.select('#group-'+ targetName);
+                                    txf = gApp._parseTransform(target.attr('transform'));
 
-                                var x1 = +txf.translate[0];
-                                var y1 = +txf.translate[1] + gApp._rowHeight/2 ;
+                                    var x1 = +txf.translate[0];
+                                    var y1 = +txf.translate[1] + gApp._rowHeight/2 ;
 
-                                pathGroup.append('circle')
-                                    .attr('cx', x1)
-                                    .attr('cy', y1)
-                                    .attr('r', 3)
-                                    .attr('id', 'circle-'+e.data.Name+'-end')
-                                    .on('mouseover', function(a, idx, arr) { gApp._createDepsPopover(e, arr[idx], 0);})    //Default to successors
-                                    .attr('class', zClass);
-                                
-                                zClass += (zClass.length?' ':'') + 'dashed' + d.data.record.get('PortfolioItemType').Ordinal.toString();
-                                
-                                if (    gApp.getSetting('oneTypeOnly') ||  
-                                       !gApp.getSetting('lowestDependencies') || 
-                                        (d.data.record.get('PortfolioItemType').Ordinal === 0)
-                                ) {
-                                    pathGroup.append('path')
-                                        .attr('d', 
-                                            'M' + x0 + ',' + y0 + 
-                                            'C' + (x0+80) + ',' + y0  +
-                                            ' ' + (x1-80) + ',' + y1 +
-                                            ' ' + x1 + ',' + y1) 
+                                    pathGroup.append('circle')
+                                        .attr('cx', x1)
+                                        .attr('cy', y1)
+                                        .attr('r', 3)
+                                        .attr('id', 'circle-'+targetName+'-end')
+                                        .on('mouseover', function(a, idx, arr) { gApp._createDepsPopover(e, arr[idx], 0);})    //Default to successors
                                         .attr('class', zClass);
+                                    
+                                    zClass += (zClass.length?' ':'') + 'dashed' + (d.data.record.data._type.toLowerCase().includes('portfolioItem/')?(d.data.record.get('PortfolioItemType').Ordinal + 1).toString(): '0');
+                                    
+                                    if (    gApp.getSetting('oneTypeOnly') ||  
+                                        !gApp.getSetting('lowestDependencies') || 
+                                            (d.data.record.get('PortfolioItemType').Ordinal === 0)
+                                    ) {
+                                        pathGroup.append('path')
+                                            .attr('d', 
+                                                'M' + x0 + ',' + y0 + 
+                                                'C' + (x0+80) + ',' + y0  +
+                                                ' ' + (x1-80) + ',' + y1 +
+                                                ' ' + x1 + ',' + y1) 
+                                            .attr('class', zClass);
+
+                                    }
                                 }
                             });
                         }
@@ -758,6 +882,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 );
             }
         });
+        gApp.setLoading(false);
     },
 
     _parseTransform: function(a) {
@@ -793,20 +918,42 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         panel.show();
     },
     
-    _checkSchedule: function(d, start, end ) {
+    _schedulingErrors: function(d, start, end ) {
         if ( !d.parent || !d.parent.data.record.data.ObjectID ) { return false; }  //Top level item doesn't have a parent
-        var childStart = (start === undefined)? d.data.record.get('PlannedStartDate') : start;
-        var childEnd = (end === undefined)? d.data.record.get('PlannedEndDate') : end;
-        if ( d.parent.data.record.data.ObjectID) {
-          return (childEnd > d.parent.data.record.get('PlannedEndDate')) ||
-              (childStart < d.parent.data.record.get('PlannedStartDate'));
-        } else {
-          return false;
+
+        //Need to vet the defects and userstories
+        if ( d.data.record.data._type.toLowerCase().includes('portfolioitem/')){
+            var childStart = (start === undefined)? d.startX : start;
+            var childEnd = (end === undefined)? d.endX : end;
+            if ( d.parent.data.record.data.ObjectID) {
+                return  (!d.startX ||  !d.endX) ||
+                        (childEnd > d.parent.endX) ||
+                        (childStart < d.parent.startX);
+            } 
         }
+        else {
+            var dates = gApp._getGroupTranslate(d);   //Get the dates of the item (non-draggable, so start, end args ignored)
+            if (!dates.startX || !dates.endX) {return true;}
+
+            /* WE DO NOT SUPPORT stories as children of stories. If you are using this mechanism: DON'T and speak to Rally about
+             * how to do it properly
+             */
+            if ( d.data.record.data._type.toLowerCase() === 'hierarchicalrequirement') {
+                return  (!d.parent.startX || !d.parent.endX) ||
+                        (dates.startX > d.parent.endX) ||
+                        (dates.endX   < d.parent.startX) ||
+                        (dates.endX   > d.parent.endX);
+            }
+            /* This is a defect at this point, so we need to check whether it is scheduled
+            */
+           return (!d.data.record.data.Iteration);
+
+        }
+        return false;   //Err on the side of caution if we have a mistake in our code
     },
 
     _sequenceError: function(a, b) {
-        return (a.data.record.get('PlannedEndDate') > b.data.record.get('PlannedStartDate')) ;
+        return (a.endX > b.startX );
     },
 
     _getSuccessors: function(record) {
@@ -839,7 +986,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                     fields: gApp.CARD_DISPLAY_FIELD_LIST,
                     constrain: false,
                     closable: true,
-                    width: gApp.MIN_COLUMN_WIDTH,
+                    width: gApp.CARD_WIDTH,
                     height: 'auto',
                     floating: true, //Allows us to control via the 'show' event
                     shadow: false,
@@ -1204,6 +1351,22 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 labelWidth: 100,
                 margin: '5 0 5 20',
                 defaultSelectionPosition: 'first',
+                storeConfig: {
+                    listeners: {
+                        load: function(store,records) {
+                            // Load the models into our app
+                            _.each(records, function(modeltype) {
+                                Rally.data.ModelFactory.getModel({
+                                    type: modeltype.get('TypePath'),
+                                    fetch: true,
+                                    success: function(model) {
+                                        gApp._portfolioItemModels[modeltype.get('ElementName')] = model;
+                                    }
+                                });
+                            });
+                        }
+                    }
+                },
                 listeners: {
                     select: function() { gApp._kickOff();},    //Jump off here to add portfolio size selector
                 }
@@ -1266,6 +1429,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 saveButton.disable();
             }
         });
+        hdrBox.add( {
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Show Dependencies',
+            name: 'showDeps',
+            id: 'showDeps',
+            value: false,
+            handler: function(cbox, value) {
+                d3.selectAll('.dependencyGroup').attr('visibility', value?'visible':'hidden');
+            }
+        });
     },
 
     _nodes: [],
@@ -1292,7 +1465,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             gApp._fetchOneType();
         } else {
             if ( gApp.down('#itemSelector').getRecord() !== false ) {
-                gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()]);
+                gApp.setLoading("Fetching Artefacts....");
+                gApp._getArtifacts( [gApp.down('#itemSelector').getRecord()], true);
             }
         }
     },
@@ -1351,7 +1525,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                             'local':true
                         });
                     }
-                    gApp._getArtifacts(records);
+                    gApp.setLoading("Fetching Artefacts....");
+                    gApp._getArtifacts(records, true);
                 }
             });
         }   
@@ -1388,6 +1563,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         if (gApp.getSetting('oneTypeOnly')){
             //Get the records you can see of the type set in the piType selector
             //and call _getArtifacts with them.
+            gApp.setLoading("Fetching Artefacts....");
             gApp._fetchOneType();
         }
     },
@@ -1410,7 +1586,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                         },
                         'local':true
                     });
-                    gApp._getArtifacts(records);
+                    gApp._getArtifacts(records, false);
                 }
             },
             change: function (a,b,c,d,e,f) {
@@ -1472,28 +1648,156 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         return Ext.clone(collectionConfig);
     },
 
-    _getArtifacts: function(data) {
-        //On re-entry send an event to redraw
-        gApp._nodes = gApp._nodes.concat( gApp._createNodes(data));    //Add what we started with to the node list
+    _recordsToProcess: [],
+    _runningThreads: [],
+    _lastThreadID: 0,
 
-        this.fireEvent('redrawNodeTree');
-        //Starting with highest selected by the combobox, go down
+    _threadCreate: function() {
 
-        if (!gApp.getSetting('oneTypeOnly')) {
-            _.each(data, function(record) {
-                var lowest = record.get('PortfolioItemType').Ordinal < 2;
-                if (record.get('Children')){  
-                    //Limit this to feature level and not beyond.
-                    var collectionConfig = gApp._fetchPIConfig(lowest);
-                    collectionConfig.callback = function(records, operation, success) {
-                        //Start the recursive trawl down through the levels
-                        if (success && records.length)  gApp._getArtifacts(records);
-                    };
-                    record.getCollection( 'Children').load( collectionConfig );
+        var workerScript = worker.toString();
+        //Strip head and tail
+        workerScript = workerScript.substring(workerScript.indexOf("{") + 1, workerScript.lastIndexOf("}"));
+        var workerBlob = new Blob([workerScript],
+            {
+                type: "application/javascript"
+            });
+        var wrkr = new Worker(URL.createObjectURL(workerBlob));
+        var thread = {
+            lastCommand: '',
+            worker: wrkr,
+            state: 'Initiate',
+            id: ++gApp._lastThreadID,
+        };
+
+        gApp._runningThreads.push(thread);
+        wrkr.onmessage = gApp._threadMessage;
+        gApp._giveToThread(thread, {
+            command: 'initialise',
+            id: thread.id,
+            fields: gApp.STORE_FETCH_FIELD_LIST.concat([gApp._getModelFromOrd(0).split("/").pop()])
+        });
+    },
+
+    //This is in the context of the worker thread even though the code is here
+    _threadMessage: function(msg) {
+        if ((msg.data.response === 'Alive') && (msg.data.reply === 'Asleep')) {
+            //TODO: Add timeout control here. If the process is busy, it will not return Asleep, but will be Alive.
+            // console.log('Thread ' + msg.data.id + ' responded to ping');
+        }
+
+        //Records come back as raw info. We need to make proper Rally.data.WSAPI.Store records out of them
+        if (msg.data.reply === 'Data') {
+            var records = [];
+
+            _.each(msg.data.records, function(item) {
+                switch (item._type.toLowerCase()) {
+                    case 'hierarchicalrequirement' : {
+                        records.push(Ext.create(gApp._userStoryModel, item));
+                        break;
+                    }
+                    case 'defect' : {
+                        records.push(Ext.create(gApp._defectModel, item));
+                        break;
+                    }
+                    case 'task' : {
+                        records.push(Ext.create(gApp._taskModel, item));
+                        break;
+                    }
+                    default: {
+                        //Portfolio Item
+                        records.push(Ext.create(gApp._portfolioItemModels[item._type.split('/').pop()], item));
+                        break;
+                    }
                 }
+            });
+            if (records.length) {
+                gApp._getArtifacts(records, true);
+            }
+
+
+        }
+        var thread = _.find(gApp._runningThreads, { id: msg.data.id});
+        thread.state = 'Asleep';
+        //Farm out more if needed
+        if (gApp._recordsToProcess.length > 0) {
+            //We have some, so give to a thread
+            gApp._processRecord(thread, gApp._recordsToProcess.pop());
+        }
+
+        if ( gApp._allThreadsIdle()) {
+            gApp.fireEvent('redrawNodeTree');
+        }
+    },
+
+    _allThreadsIdle: function() {
+        return _.every(gApp._runningThreads, function(thread) {
+            return thread.state === 'Asleep';
+        });
+    },
+
+    _checkThreadState: function(thread) {
+        return thread.state;
+    },
+
+    _wakeThread: function(thread) {
+        if ( gApp._checkThreadState(thread) === 'Asleep') {
+            thread.lastMessage = 'wake';
+            thread.worker.postMessage({
+                command: thread.lastMessage
             });
         }
     },
+
+    _checkThreadActivity: function() {
+        while (gApp._runningThreads.length < gApp.self.MAX_THREAD_COUNT) {
+            //Check the required amount of threads are still running
+            gApp._threadCreate();
+        }
+        _.each(gApp._runningThreads, function(thread) {
+            if ((gApp._recordsToProcess.length > 0) && (thread.state === 'Asleep')) {
+                //Keep asking to process until their is somethng that needs doing
+                gApp._processRecord(thread,gApp._recordsToProcess.pop());
+            }
+        });
+
+    },
+
+    _giveToThread: function(thread, msg){
+        thread.state = 'Busy';
+        thread.worker.postMessage(msg);
+    },
+
+    _processRecord: function(thread, record) {
+        thread.lastCommand = 'readchildren';
+        var msg = {
+            command: thread.lastCommand,
+            objectID: record.get('ObjectID'),
+            hasChildren: (record.hasField('Children') && (record.get('Children').Count > 0) && (!record.data._ref.includes('hierarchicalrequirement'))) ?
+                Rally.util.Ref.getUrl(record.get('Children')._ref):null,
+            hasDefects: (gApp.getSetting('includeDefects') && record.hasField('Defects') && (record.get('Defects').Count > 0) ) ?
+                Rally.util.Ref.getUrl(record.get('Defects')._ref):null,
+            hasStories: (gApp.getSetting('includeStories') && record.hasField('UserStories') && (record.get('UserStories').Count > 0)) ?
+                Rally.util.Ref.getUrl(record.get('UserStories')._ref):null,
+            hasTasks: (gApp.getSetting('includeTasks') && record.hasField('Tasks') && (record.get('Tasks').Count > 0) ) ?
+                Rally.util.Ref.getUrl(record.get('Tasks')._ref):null
+        };
+        gApp._giveToThread(thread, msg);    //Send a wakeup message with an item
+    },
+
+    _getArtifacts: function(records, cascade) {
+        gApp._nodes = gApp._nodes.concat( gApp._createNodes(records));
+
+        if ( cascade ) {
+            _.each(records, function(record) {
+                gApp._recordsToProcess.push(record);
+            });
+            gApp._checkThreadActivity();
+        }
+        else {
+            this.fireEvent('redrawNodeTree');
+        }
+    },
+
 
     _createNodes: function(data) {
         //These need to be sorted into a hierarchy based on what we have. We are going to add 'other' nodes later
@@ -1542,7 +1846,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
     _findParentNode: function(nodes, child){
         if (child.record.data._ref === 'root') return null;
-        var parent = child.record.data.Parent;
+
+        //We need to locate based on the type of artefact passed in.
+        var parent = null;
+        
+        if (child.record.data._type.includes('portfolioitem/')) {
+            parent = child.record.data.Parent;
+        }
+        else if (child.record.data._type === 'hierarchicalrequirement') {
+            parent = child.record.data.PortfolioItem;
+        }
         var pParent = null;
         if (parent ){
             //Check if parent already in the node list. If so, make this one a child of that one
@@ -1641,48 +1954,55 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _addSVGTree: function() {
-        var svg = d3.select('#scaledSvg');
-        svg.append("g")        
-            .attr("transform","translate(0," +  
-                ((gApp.getSetting('showTimeLine')?gApp._rowHeight:0) + (gApp.getSetting('showReleases')?gApp._rowHeight:0)) + ")")
-            .attr("id","zoomTree")
-            .attr('width', +svg.attr('width') - gApp._rowHeight)
-            .attr('height', +svg.attr('height'))
-            .append('rect')
-            .attr('width', +svg.attr('width') - gApp._rowHeight)
-            .attr('height', +svg.attr('height'))
-            .attr('class', 'arrowbox')
-            .on('click', gApp._startTreeAgain);
+        var drawnDate = new Date();
+        var todayPos = gApp.dateScaler(drawnDate);
 
-        var st = svg.append("g")        
+        var st = d3.select('#axisSvg').append("g")        
             .attr("transform","translate(0,0)")
-            .attr('width', gApp._rowHeight)
-            .attr("id","staticTree");
-        var todayPos = gApp.dateScaler(new Date());
-        if ((todayPos > 0) && (todayPos < svg.attr('width'))){
+            .attr("id","dateline");
+
+        if ((todayPos > 0) && (todayPos < d3.select('#scaledSvg').attr('width'))){
+            var dateGroup = st.append('g')
+                .attr('transform', 'translate(' + todayPos + ',0)' )
+                .attr('id', 'dateLineGroup')
+                .attr('visibility', 'hidden');
+            dateGroup.append('rect')
+                .attr('class', 'chosenDate')
+                .attr('x', 18)
+                .attr('width', 200)
+                .attr('height', 18);
+            dateGroup.append('text')
+                .text(Ext.Date.format(drawnDate, 'F j, Y, g:i a'))
+                .attr('class', 'chosenDate')
+                .attr('y', 9)
+                .attr('x', 20)
+                .attr('alignment-baseline', 'text-top');
+
             st.append('line')
-                .attr('x1',todayPos + gApp._rowHeight)
+                .attr('x1',todayPos)
                 .attr('y1', 0)
-                .attr('x2', todayPos + gApp._rowHeight)
-                .attr('y2', svg.attr('height'))
+                .attr('x2', todayPos)
+                .attr('y2', d3.select('svg').attr('height'))
                 .attr('class', 'todaysDate');
             st.append('circle')
-                .attr('cx',todayPos + gApp._rowHeight)
-                .attr('cy', 2)
-                .attr('r', 2)
-                .attr('class', 'todaysDate');
+                .attr('cx',todayPos)
+                .attr('cy', 3)
+                .attr('r', 3)
+                .attr('class', 'todaysDate')
+                .on('mouseover', function() {
+                    dateGroup.attr('visibility', 'visible');
+                })
+                .on('mouseout', function() {
+                    dateGroup.attr('visibility', 'hidden');
+                });
         }
     },
 
     _removeSVGTree: function() {
-        if (d3.select("#zoomTree")) {
-            d3.select("#zoomTree").remove();
-        }
-        if (d3.select("#staticTree")) {
-            d3.select("#staticTree").remove();
-        }
-        d3.select('#scaledSvg').selectAll(".releases").remove();
 
+        if (d3.select('#dateline')) {
+            d3.select('#dateline').remove();
+        }
         //Go through all nodes and kill the cards
         gApp._removeCards();
 
@@ -1826,7 +2146,58 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         );
     },
 
+    _getUserStoryModel: function() {
+        var deferred = Ext.create('Deft.Deferred');
+
+        Rally.data.ModelFactory.getModel({
+            type: 'UserStory'
+        }). then( {
+            success: function(model) {
+                gApp._userStoryModel = model;
+                deferred.resolve();
+            },
+            failure: function() {
+                deferred.reject();
+            }
+        });
+        return deferred.promise;
+    },
+
+    _getTaskModel: function() {
+        var deferred = Ext.create('Deft.Deferred');
+
+        deferred.resolve();
+
+        return deferred.promise;
+    },
+
+    _getDefectModel: function() {
+        var deferred = Ext.create('Deft.Deferred');
+
+        deferred.resolve();
+        
+        return deferred.promise;
+    },
+
     launch: function() {
+
+        var me = this;
+
+        //We need to get all the usual models before we continue. We will get the portfolio models from the item type selector
+        Deft.Chain.parallel( [
+            this._getUserStoryModel,
+            this._getTaskModel,
+            this._getDefectModel
+        ], this). then ({
+            success: this._continueLaunch,
+            failure: function() {
+                Rally.ui.notify.Notifier.showWarning({ message: 'Failed to fetch artefact models'});
+            },
+            scope: me
+        });
+    },
+
+    _continueLaunch: function() {
 
         this.on('redrawNodeTree', function() {
             d3.select('svg').selectAll('g').remove();

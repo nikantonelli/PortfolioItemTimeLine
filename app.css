@@ -34,6 +34,11 @@
   stroke-width: 1px;
 }
 
+.dateText {
+  background-color: white;
+  fill: black
+
+}
 .error--node  {
   fill: rgb(0, 0, 0);
 }
@@ -64,6 +69,9 @@ path.dashed4 {
 }
 path.dashed5 {
   stroke-dasharray: 8 2
+}
+path.dashed6 {
+  stroke-dasharray: 4 2
 }
 
 circle.data--errors {
@@ -110,13 +118,22 @@ circle.no--errors {
   font-weight: bold;
 }
 
-.chosenDate {
+rect.chosenDate {
   border: black solid 1px;
   font-weight: bold;
+  fill: white;
 }
 
+.dateLineRect {
+  border: black solid 1px;
+  fill: white;
+}
+
+text.chosenDate {
+  fill: black
+}
 .releases {
-    font-size: 1em;
+  font-size: 1em;
   font-family: NotoSans,Helvetica,Arial;
 
 }
