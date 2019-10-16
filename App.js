@@ -25,7 +25,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             lineSize: 22,
             sortByTeam: true,
             includeStories: true,
-            includeDefects: false,
+            includeDefects: true,
             includeTasks: false,
  
         }
@@ -92,6 +92,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 name: 'includeStories',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Stories',
+                labelAlign: 'top'
+            },
+            {
+                name: 'includeDefects',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show Defects',
                 labelAlign: 'top'
             },
             {
@@ -169,6 +175,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             'BlockedReason',
             'Children',
             'CreationDate',
+            'Defects',
             'Description',
             'DisplayColor',
             'DragAndDropRank',
@@ -196,6 +203,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             'Project',
             'Ready',
             'Release',
+            'Requirement',
             'RevisionHistory',
             'ScheduleState',
             'StartDate',
@@ -216,13 +224,15 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         [
             'Name',
             'Owner',
-            'PreliminaryEstimate',
             'Parent',
-            'Project',
             'PercentDoneByStoryCount',
             'PercentDoneByStoryPlanEstimate',
-            'PlannedStartDate',
+            'PlanEstimate',
             'PlannedEndDate',
+            'PlannedStartDate',
+            'PreliminaryEstimate',
+            'Project',
+            'ScheduleState',
             'State',
             //Customer specific after here. Delete as appropriate
             // 'c_ProjectIDOBN',
@@ -1864,6 +1874,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _processRecord: function(thread, record) {
         thread.lastCommand = 'readchildren';
+        if (record.get('FormattedID') === 'US75') { debugger;}
         var msg = {
             command: thread.lastCommand,
             objectID: record.get('ObjectID'),
@@ -1945,12 +1956,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         //We need to locate based on the type of artefact passed in.
         var parent = null;
         
-        if (child.record.data._type.includes('portfolioitem/')) {
+        if (child.record.data._type.toLowerCase().includes('portfolioitem/')) {
             parent = child.record.data.Parent;
         }
-        else if (child.record.data._type === 'hierarchicalrequirement') {
+        else if (child.record.data._type.toLowerCase() === 'hierarchicalrequirement') {
             parent = child.record.data.PortfolioItem;
         }
+        else if (child.record.data._type.toLowerCase() === 'defect') {
+            parent = child.record.data.Requirement;
+        }
+
         var pParent = null;
         if (parent ){
             //Check if parent already in the node list. If so, make this one a child of that one
@@ -2269,8 +2284,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     _getDefectModel: function() {
         var deferred = Ext.create('Deft.Deferred');
 
-        deferred.resolve();
-        
+        Rally.data.ModelFactory.getModel({
+            type: 'Defect'
+        }). then( {
+            success: function(model) {
+                gApp._defectModel = model;
+                deferred.resolve();
+            },
+            failure: function() {
+                deferred.reject();
+            }
+        });
         return deferred.promise;
     },
 
