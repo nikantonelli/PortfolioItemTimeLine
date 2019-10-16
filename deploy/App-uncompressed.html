@@ -568,7 +568,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 return (rel.width > 80)? title: ((rel.width > 60)?(title.substr(1,3) + '...' + title.substr(-3,3)):'');
             })
             .style("text-anchor", 'middle')
-            .attr('alignment-baseline', 'central');
+            .attr('alignment-baseline', 'central')
+            .on('click', function(rel) {
+                gApp._setTimeline(rel);
+            });
 
     },
 
@@ -611,7 +614,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 return (rel.width > 80)? title: ((rel.width > 60)?(title.substr(1,3) + '...' + title.substr(-3,3)):'');
             })
             .style("text-anchor", 'middle')
-            .attr('alignment-baseline', 'central');
+            .attr('alignment-baseline', 'central')
+            .on('click', function(rel) {
+                gApp._setTimeline(rel);
+            });
 
     },
 
@@ -706,24 +712,39 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _getGroupTranslate: function(node) {
 
-        if (!node) { }
-        var data = node.data.record.data;
+        var data = node.data;
         var d = {
             startX: null,
             endX: null
         };
 
-        if (data._type.toLowerCase().includes('portfolioitem/')){
-            d.startX = data.PlannedStartDate?new Date(data.PlannedStartDate):null;
-            d.endX = data.PlannedEndDate?new Date(data.PlannedEndDate):null;
-        }
-        else if (data.Iteration) {
-            d.startX = data.Iteration.StartDate? new Date( data.Iteration.StartDate):null;
-            d.endX = data.Iteration.EndDate?new Date(data.Iteration.EndDate):null;
+        //If we are a releease or an iteration, we won't have a proper node setup - just the timebox as 'node'
+        if (data && data.ObjectID) { 
+            //We are a timebox
+            if (data._type === 'release') {
+                d.startX = data.ReleaseStartDate;
+                d.endX = data.ReleaseDate;
+            }
+            else if (data._type === 'iteration') {
+                d.startX = data.StartDate;
+                d.endX = data.EndDate;
+            }
         }
         else {
-            d.startX = data.InProgressDate?new Date(data.InProgressDate):null;
-            d.endX = data.AcceptedDate?new Date(data.AcceptedDate):null;
+            data = node.data.record.data;
+
+            if (data._type.toLowerCase().includes('portfolioitem/')){
+                d.startX = data.PlannedStartDate?new Date(data.PlannedStartDate):null;
+                d.endX = data.PlannedEndDate?new Date(data.PlannedEndDate):null;
+            }
+            else if (data.Iteration) {
+                d.startX = data.Iteration.StartDate? new Date( data.Iteration.StartDate):null;
+                d.endX = data.Iteration.EndDate?new Date(data.Iteration.EndDate):null;
+            }
+            else if (data.InProgressDate){
+                d.startX = new Date(data.InProgressDate);
+                d.endX = data.AcceptedDate?new Date(data.AcceptedDate):null;
+            }
         }
         return d;
         
