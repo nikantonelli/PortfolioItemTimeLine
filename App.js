@@ -541,7 +541,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 var end = gApp.dateScaler(new Date(rel.get('ReleaseDate')));
                 end = (d3.select('#scaledSvg').attr('width')<end)?d3.select('#scaledSvg').attr('width'):end;
                 rel.width = end - rel.x;
-                return rel.width<4?2:rel.width-2;
+                return rel.width<4?2:rel.width;
             })
             .attr('class', function( rel, idx, arr) {
                 return 'q' + (idx%2) + '-' + 2;
@@ -585,7 +585,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 var end = gApp.dateScaler(new Date(rel.get('EndDate')));
                 end = (d3.select('#scaledSvg').attr('width')<end)?d3.select('#scaledSvg').attr('width'):end;
                 rel.width = end - rel.x;
-                return rel.width<4?2:rel.width-2;
+                return rel.width<4?2:rel.width;
             })
             .attr('class', function( rel, idx, arr) {
                 return idx%2 ? 'odd': 'even';
@@ -1599,6 +1599,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             if ( selector) {
                 selector.destroy();
             }
+            var filters = [];
+            var storeConfig = gApp._fetchPIConfig(true);
+            storeConfig.models = [ 'portfolioitem/' + ptype.rawValue ];
+            storeConfig.context = gApp.getContext().getDataContext();
+            storeConfig.autoLoad = true;
+            storeConfig.pageSize = 200;
+            
             var is = hdrBox.insert(1,{
                 xtype: 'rallyartifactsearchcombobox',
                 fieldLabel: 'Choose Start Item :',
@@ -1612,13 +1619,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 margin: '10 0 5 20',
                 stateful: true,
                 stateId: this.getContext().getScopedStateId('itemSelector'),
-                storeConfig: {
-                    models: [ 'portfolioitem/' + ptype.rawValue ],
-                    fetch: gApp.STORE_FETCH_FIELD_LIST,
-                    context: gApp.getContext().getDataContext(),
-                    pageSize: 200,
-                    autoLoad: true
-                },
+                storeConfig: storeConfig,
                 listeners: {
                     change: function(selector,records) {
                         if ((records !== null) && (records.length > 0)) {
@@ -1639,8 +1640,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                             },
                             'local':true
                         });
+                        gApp.setLoading("Fetching Artefacts....");
                     }
-                    gApp.setLoading("Fetching Artefacts....");
                     gApp._getArtifacts(records, true);
                 }
             });
