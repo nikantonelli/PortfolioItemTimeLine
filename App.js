@@ -4,7 +4,6 @@
 
 Ext.define('Nik.apps.PortfolioItemTimeline', {
     extend: 'Rally.app.TimeboxScopedApp',
-    settingsScope: 'project',
     componentCls: 'app',
     config: {
         defaultSettings: {
@@ -553,9 +552,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 return (gApp.self.TimeboxSVGHeight/2);
             })
             .attr('class', 'normalText')
-//            .attr('style', 'font-size:' + gApp.self.TimeboxSVGHeight/2) //Smallest font of 10
             .text( function(rel) {
-                var title = rel.get('Name')
+                var title = rel.get('Name');
                 return (rel.width > 80)? title: ((rel.width > 60)?(title.substr(1,3) + '...' + title.substr(-3,3)):'');
             })
             .style("text-anchor", 'middle')
@@ -599,9 +597,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 return (gApp.self.TimeboxSVGHeight/2);
             })
             .attr('class', 'normalText')
-//            .attr('style', 'font-size:' + gApp.self.TimeboxSVGHeight/2) //Smallest font of 10
             .text( function(rel) {
-                var title = rel.get('Name')
+                var title = rel.get('Name');
                 return (rel.width > 80)? title: ((rel.width > 60)?(title.substr(1,3) + '...' + title.substr(-3,3)):'');
             })
             .style("text-anchor", 'middle')
@@ -628,7 +625,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         if (!d) {
             gApp._startTreeAgain();
         } else {
-            var dates = gApp._getGroupTranslate(d)
+            var dates = gApp._getGroupTranslate(d);
             if (dates.startX && dates.endX) {
                 gApp._setTimeScaler(
                     dates.startX,
@@ -721,9 +718,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 d.endX = data.EndDate;
             }
         }
-        else {
+        else if (data.record.data._ref !== "root"){
             data = node.data.record.data;
-
+            
             if (data._type.toLowerCase().includes('portfolioitem/')){
                 d.startX = data.PlannedStartDate?new Date(data.PlannedStartDate):null;
                 d.endX = data.PlannedEndDate?new Date(data.PlannedEndDate):null;
@@ -1724,6 +1721,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                         'local':true
                     });
                     gApp._getArtifacts(records, false);
+                }
+                else {
+                    gApp.setLoading(false);
                 }
             },
             change: function (a,b,c,d,e,f) {
