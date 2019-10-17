@@ -29,6 +29,8 @@ You can have just the timeline (no vertical colouring), timeline+releases, timel
 
 ## Dependencies
 
+All defined dependencies for the items shown can be revealed by using the check box at the top of the page.
+
 If you have a lot of portfolio items and only want to see those with dependencies, there is an app setting for that too. If you select a single level of portfolio item, then you will see them all. If you are still on the multi-level view, then only the lowest level portfolio item dependencies are shown (as the default).
 
 Hover over a dependency link dot and it will give you the dependency popover. Hover over the bar and it will give you a small details panel. If you then decide you want to look at an item in more detail, click on the suitcase icon in the left end of the bar. This will open a either an FDP or QDP panel for the item. 
