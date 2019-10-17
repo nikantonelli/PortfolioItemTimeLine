@@ -17,7 +17,7 @@ You can make the view expand so that a particular item fills the dateline by cli
 
 ## Progress Bar Colouring
 
-The span of the item is used as a progress bar and shows a colour going from left to right as far as the %-done field says. The %-done can be story points or story count vis the app settings. The colour chosen is based around the standard Rally algorithm of comparing the amount of work defined against the expected completion rate.
+The span of the item is used as a progress bar and shows a colour going from left to right as far as the %-done field says. The %-done can be story points or story count via the app settings. The colour chosen is based around the standard Rally algorithm of comparing the amount of work defined against the expected completion rate.
 
 ## Team Level Items
 
