@@ -45,7 +45,7 @@ The text of a bar goes red as well (and this is independent of dependencies).
 
 ## Improving visibility
 
-The up/down arrows to the far left of the screen will collapse/restore that portfolio item and it's corresponding children.
+The up/down arrows to the far left of the bar will collapse/restore that portfolio item and it's corresponding children. Use shift-click to toggel the state of all the items at the same portfolio level as the one you clicked on. E.g. if they are all open, then shift-click on a Feature will close up all Features.
 
 If you think the text is too small, you can set a "line size" in the options which will increase the bar width and the font size!
 
