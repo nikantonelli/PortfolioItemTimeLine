@@ -13,7 +13,9 @@ The lowest level portfolio items can be filtered based on the advanced filter se
 
 Option 2: select a portfolio type and all those of that level found in the current context will be shown. The filters then apply to the level chosen.
 
-You can make the view expand so that a particular item fills the dateline by clicking on the text of the title.  If you have finished with that view and want to return to the full view, just click on the white background
+You can make the view expand so that a particular item fills the dateline by clicking on the text of the title.  If you have finished with that view and want to return to the full view, just click on the white background.
+
+If items do not have correct dates set, then they will appear lined up to the left.
 
 ## Progress Bar Colouring
 
