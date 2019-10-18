@@ -1001,8 +1001,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                                         .attr('id', 'circle-'+targetName+'-end')
                                         .on('mouseover', function(a, idx, arr) { gApp._createDepsPopover(e, arr[idx], 0);})    //Default to successors
                                         .attr('class', zClass);
-                                    
-                                    zClass += (zClass.length?' ':'') + 'dashed' + (d.data.record.data._type.toLowerCase().includes('portfolioItem/')?(d.data.record.get('PortfolioItemType').Ordinal + 1).toString(): '0');
+                        
+                                    zClass += (zClass.length?' ':'') + 'dashed' + (d.data.record.data._type.toLowerCase().includes('portfolioitem/')?(d.data.record.get('PortfolioItemType').Ordinal + 1).toString(): '0');
                                     
                                     if (    gApp.getSetting('oneTypeOnly') ||  
                                         !gApp.getSetting('lowestDependencies') || 
