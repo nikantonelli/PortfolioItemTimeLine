@@ -54,23 +54,23 @@ path.dashed0 {
 }
 
 path.dashed1 {
-  stroke-dasharray: 48 2
+  stroke-dasharray: 46 4
 }
 
 path.dashed2 {
-  stroke-dasharray: 38 2
+  stroke-dasharray: 36 4
 }
 path.dashed3 {
-  stroke-dasharray: 28 2
+  stroke-dasharray: 26 4
 }
 path.dashed4 {
-  stroke-dasharray: 18 2
+  stroke-dasharray: 16 4
 }
 path.dashed5 {
-  stroke-dasharray: 8 2
+  stroke-dasharray: 6 4
 }
 path.dashed6 {
-  stroke-dasharray: 4 2
+  stroke-dasharray: 4 4
 }
 
 circle.data--errors {

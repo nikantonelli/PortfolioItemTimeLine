@@ -355,6 +355,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             d.value = d._value;
             d._value = 1;
         }
+        d3.selectAll('.dependencyGroup').remove();
         gApp._removeSVGTree();
         gApp._restart();
     },
@@ -1569,6 +1570,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             id: 'showDeps',
             value: false,
             handler: function(cbox, value) {
+
+                //TODO: Need to recalc based on whether the tree is expanded or not
                 d3.selectAll('.dependencyGroup').attr('visibility', value?'visible':'hidden');
             }
         });
