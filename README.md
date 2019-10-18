@@ -13,11 +13,13 @@ The lowest level portfolio items can be filtered based on the advanced filter se
 
 Option 2: select a portfolio type and all those of that level found in the current context will be shown. The filters then apply to the level chosen.
 
-You can make the view expand so that a particular item fills the dateline by clicking on the text of the title.  If you have finished with that view and want to return to the full view, just click on the white background
+You can make the view expand so that a particular item fills the dateline by clicking on the text of the title.  If you have finished with that view and want to return to the full view, just click on the white background.
+
+If items do not have correct dates set, then they will appear lined up to the left.
 
 ## Progress Bar Colouring
 
-The span of the item is used as a progress bar and shows a colour going from left to right as far as the %-done field says. The %-done can be story points or story count vis the app settings. The colour chosen is based around the standard Rally algorithm of comparing the amount of work defined against the expected completion rate.
+The span of the item is used as a progress bar and shows a colour going from left to right as far as the %-done field says. The %-done can be story points or story count via the app settings. The colour chosen is based around the standard Rally algorithm of comparing the amount of work defined against the expected completion rate.
 
 ## Team Level Items
 
@@ -28,6 +30,8 @@ You can ask the app to fetch items in the work hierarchy. So that means you can 
 You can have just the timeline (no vertical colouring), timeline+releases, timeline+iterations or  timeline+release+iterations
 
 ## Dependencies
+
+All defined dependencies for the items shown can be revealed by using the check box at the top of the page.
 
 If you have a lot of portfolio items and only want to see those with dependencies, there is an app setting for that too. If you select a single level of portfolio item, then you will see them all. If you are still on the multi-level view, then only the lowest level portfolio item dependencies are shown (as the default).
 
