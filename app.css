@@ -25,7 +25,6 @@
 
 .normalText:hover {
   fill: #888;
-  font-family: NotoSans,Helvetica,Arial;
 }
 
 .todaysDate {
@@ -34,6 +33,11 @@
   stroke-width: 1px;
 }
 
+.dateText {
+  background-color: white;
+  fill: black
+
+}
 .error--node  {
   fill: rgb(0, 0, 0);
 }
@@ -50,20 +54,23 @@ path.dashed0 {
 }
 
 path.dashed1 {
-  stroke-dasharray: 48 2
+  stroke-dasharray: 46 4
 }
 
 path.dashed2 {
-  stroke-dasharray: 38 2
+  stroke-dasharray: 36 4
 }
 path.dashed3 {
-  stroke-dasharray: 28 2
+  stroke-dasharray: 26 4
 }
 path.dashed4 {
-  stroke-dasharray: 18 2
+  stroke-dasharray: 16 4
 }
 path.dashed5 {
-  stroke-dasharray: 8 2
+  stroke-dasharray: 6 4
+}
+path.dashed6 {
+  stroke-dasharray: 4 4
 }
 
 circle.data--errors {
@@ -110,16 +117,40 @@ circle.no--errors {
   font-weight: bold;
 }
 
-.chosenDate {
+rect.chosenDate {
   border: black solid 1px;
   font-weight: bold;
+  fill: white;
+}
+
+.dateLineRect {
+  border: black solid 1px;
+  fill: white;
+}
+
+text.chosenDate {
+  fill: black
 }
 
 .releases {
-    font-size: 1em;
+  font-size: 12pt;
   font-family: NotoSans,Helvetica,Arial;
 
 }
+.iterations {
+  font-size: 12pt;
+  font-family: NotoSans,Helvetica,Arial;
+
+}
+
+.odd {
+  fill: none;
+}
+.even {
+  fill: rgb(116,169,207);
+  opacity: 0.5;
+}
+
 .q0-1{fill:rgb(43,140,190)}
 .q0-2{fill:rgb(43,140,190)}
 .q1-2{fill:rgb(166,189,219)} 
@@ -202,5 +233,5 @@ circle.no--errors {
 }
 
 .icon-gear {
-  fill: #dddddd;
+  fill:fuchsia;
 }
