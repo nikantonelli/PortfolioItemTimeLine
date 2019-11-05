@@ -889,7 +889,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .text(';')
             .attr('style', 'font-size:' + (gApp._getFontSize() - 2))
             .attr('class', function(d) {
-                var lClass = 'icon-gear';
+                var lClass = 'icon-gear icon-gear-white';
                 if ( !d.startX|| !d.endX){
                     lClass = 'error ' + lClass;
                 }
@@ -941,13 +941,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 gApp._getSuccessors(d.data.record).then (
                     {
                         success: function(succs) {
+                            d.dependencies = succs;
                             //Draw a circle on the end of the first one and make it flash if I can't find the other end one
                             _.each(succs, function(succ) {
                                 var e = gApp._findTreeNode(gApp._getNodeTreeRecordId(succ));
                                 var targetName = 'Unknown';
-                                var zClass = 'dependencyGroup';
+                                var zClass = '';
                                 if (!e) { 
-                                    zClass += ' textBlink';
+                                    zClass += 'textBlink';
                                 } else {
                                     targetName = e.data.Name;
                                     if (gApp._sequenceError( d, e)) {
@@ -965,7 +966,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                                 pathGroup = zoomTree.append('g')
                                     .attr('id', 'dep'+ d.data.Name +'-'+ targetName)
                                     .attr('visibility', gApp.down('#showDeps').value?'visible': 'hidden')
-                                    .attr('class', zClass);
+                                    .attr('class', zClass + ' dependencyGroup');
 
                                 //Stuff without end point
                                 var source = d3.select('#group-'+d.data.Name);
@@ -1572,18 +1573,120 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 saveButton.disable();
             }
         });
-        hdrBox.add( {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: 'Show Dependencies',
+
+        Ext.define('depsType', {
+            extend: 'Ext.data.Model',
+            fields: [
+                'value',
+                'name'
+            ]
+        });
+
+        var depsTypeStore = Ext.create('Ext.data.Store', {
+            model: 'depsType',
+            data: [
+                { value: 0, name: 'None'},
+                { value: 1, name: 'All'},
+                { value: 2, name: 'Features Only'},
+                { value: 3, name: 'User Stories Only'},
+                { value: 4, name: 'Portfolio Item Only'},
+            ],
+            proxy: {
+                type: 'ajax',
+                url: '/depsType.json',
+                reader: {
+                    type: 'json',
+                    root: 'depsType'
+                }
+            },
+            autoLoad: true
+        });
+        var depsTypeSelector = Ext.create('Ext.form.field.ComboBox', {
+//            queryMode: 'local',
+            margin: 5,
             name: 'showDeps',
             id: 'showDeps',
-            value: false,
-            handler: function(cbox, value) {
+            store: depsTypeStore,
+            valueField: 'value',
+            displayField: 'name',
+            fieldLabel: 'Show Dependencies',
+            listeners: {
+                select: function() {
+                    switch(this.value) {
+                        case 0: {
+                            d3.selectAll('.dependencyGroup').attr('visibility', 'hidden');
+                            break;
+                        }
+                        case 1: {
+                            d3.selectAll('.dependencyGroup').attr('visibility', 'visible');
+                            break;
+                        }
+                        case 2: {
+                            //Turn them all off and then turn on the ones you want
+                            d3.selectAll('.dependencyGroup').attr('visibility', 'hidden');
+                            // We need to filter on the type of the node, not the SVG group
+                            gApp._nodeTree.each( function(d) {
+                                if ((d.data.record.data._type.startsWith('portfolioitem/')) &&
+                                    (d.data.record.data.PortfolioItemType.Ordinal === 0)) {
+                                        var dDeps = d3.selectAll('[class~=dependencyGroup]').filter(function() {
+                                            return this.getAttribute('id').startsWith('dep' + d.data.Name)
+                                        })
+                                        dDeps.each( function () {
+                                            this.setAttribute('visibility', 'visible')
+                                        })
+                                    }
+                            });
+                            break;
+                        }
+                        case 3: {
+                            //Turn them all off and then turn on the ones you want
+                            d3.selectAll('.dependencyGroup').attr('visibility', 'hidden');
+                            // We need to filter on the type of the node, not the SVG group
+                            gApp._nodeTree.each( function(d) {
+                                if (d.data.record.data._type.toLowerCase() === 'hierarchicalrequirement') {
+                                        var dDeps = d3.selectAll('[class~=dependencyGroup]').filter(function() {
+                                            return this.getAttribute('id').startsWith('dep' + d.data.Name)
+                                        })
+                                        dDeps.each( function () {
+                                            this.setAttribute('visibility', 'visible')
+                                        })
+                                    }
+                            });
+                            break;
+                        }
+                        case 4: {
+                            //Turn them all off and then turn on the ones you want
+                            d3.selectAll('.dependencyGroup').attr('visibility', 'hidden');
+                            // We need to filter on the type of the node, not the SVG group
+                            gApp._nodeTree.each( function(d) {
+                                if (d.data.record.data._type.startsWith('portfolioitem/')) {
+                                        var dDeps = d3.selectAll('[class~=dependencyGroup]').filter(function() {
+                                            return this.getAttribute('id').startsWith('dep' + d.data.Name)
+                                        })
+                                        dDeps.each( function () {
+                                            this.setAttribute('visibility', 'visible')
+                                        })
+                                    }
+                            });
+                            break;
+                        }
 
-                //TODO: Need to recalc based on whether the tree is expanded or not
-                d3.selectAll('.dependencyGroup').attr('visibility', value?'visible':'hidden');
+                    }
+                }
             }
         });
+
+        hdrBox.add( depsTypeSelector);
+        // {
+        //     xtype: 'rallycheckboxfield',
+        //     fieldLabel: 'Show Dependencies',
+        //     name: 'showDeps',
+        //     id: 'showDeps',
+        //     value: false,
+        //     handler: function(cbox, value) {
+        //         d3.selectAll('.dependencyGroup').attr('visibility', value?'visible':'hidden');
+        //     }
+        // });
     },
 
     _nodes: [],
@@ -1683,7 +1786,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 xtype: 'rallyinlinefiltercontrol',
                 name: 'inlineFilter',
                 itemId: 'inlineFilter',
-                margin: '10 0 5 20',                           
+                margin: 5,                           
                 context: this.getContext(),
                 height:26,
                 inlineFilterButtonConfig: {
@@ -1954,8 +2057,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         //Push them into an array we can reconfigure
         _.each(data, function(record) {
             if (record.data._ref === 'root') return null;
-            var localNode = (gApp.getContext().getProjectRef() === record.get('Project')._ref);
-            nodes.push({'Name': record.get('FormattedID'), 'record': record, 'local': localNode, 'dependencies': []});
+            nodes.push({'Name': record.get('FormattedID'), 'record': record});
         });
         return nodes;
     },
@@ -2107,17 +2209,24 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _addSVGTree: function() {
-        var drawnDate = new Date();
-        var todayPos = gApp.dateScaler(drawnDate);
 
-        var st = d3.select('#axisSvg').append("g")        
+        d3.select('#axisSvg').append("g")        
             .attr("transform","translate(0,0)")
-            .attr("id","dateline");
+            .attr("id","datelineGroup");
 
-        if ((todayPos > 0) && (todayPos < d3.select('#scaledSvg').attr('width'))){
+        gApp._addDateLine(new Date(), 'dateline');
+    },
+
+    _addDateLine: function(drawnDate, classType) {
+        var st = d3.select('#datelineGroup')
+        var acceptedClasses = ['global-milestone','project-milestone', 'dateline']; //Match this with .css entries
+
+        if (acceptedClasses.includes(classType)){
+            var linePos = gApp.dateScaler(drawnDate);
+            if ((linePos > 0) && (linePos < d3.select('#scaledSvg').attr('width'))) {
             var dateGroup = st.append('g')
-                .attr('transform', 'translate(' + todayPos + ',0)' )
-                .attr('id', 'dateLineGroup')
+                .attr('transform', 'translate(' + linePos + ',0)' )
+                .attr('id', 'dateGroup')
                 .attr('visibility', 'hidden');
             dateGroup.append('rect')
                 .attr('class', 'chosenDate')
@@ -2132,34 +2241,36 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 .attr('alignment-baseline', 'text-top');
 
             st.append('line')
-                .attr('x1',todayPos)
+                .attr('x1',linePos)
                 .attr('y1', 0)
-                .attr('x2', todayPos)
+                .attr('x2', linePos)
                 .attr('y2', d3.select('svg').attr('height'))
-                .attr('class', 'todaysDate');
+                .attr('class', 'dateline');
             st.append('circle')
-                .attr('cx',todayPos)
+                .attr('cx',linePos)
                 .attr('cy', 3)
                 .attr('r', 3)
-                .attr('class', 'todaysDate')
+                .attr('class', 'dateline')
                 .on('mouseover', function() {
                     dateGroup.attr('visibility', 'visible');
                 })
                 .on('mouseout', function() {
                     dateGroup.attr('visibility', 'hidden');
                 });
+            }
         }
     },
 
     _removeSVGTree: function() {
 
-        if (d3.select('#dateline')) {
-            d3.select('#dateline').remove();
+        if (d3.select('#datelineGroup')) {
+            d3.select('#datelineGroup').remove();
         }
 
         //Go through all nodes and kill the cards
         gApp._removeCards();
 
+        //Remove all the nodes we added
         d3.select('#zoomTree').selectAll(".node").remove();
     },
 
@@ -2290,7 +2401,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 itemId: 'rootSurface',
                 overflowX: 'hidden',
                 overflowY: 'hidden',
-                margin: '5 15 5 5',
+                margin: 3,
                 autoEl: {
                     tag: 'svg'
                 },
@@ -2343,24 +2454,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         return deferred.promise;
     },
 
-    launch: function() {
-
-        var me = this;
-
-        //We need to get all the usual models before we continue. We will get the portfolio models from the item type selector
-        Deft.Chain.parallel( [
-            this._getUserStoryModel,
-            this._getTaskModel,
-            this._getDefectModel
-        ], this). then ({
-            success: this._continueLaunch,
-            failure: function() {
-                Rally.ui.notify.Notifier.showWarning({ message: 'Failed to fetch artefact models'});
-            },
-            scope: me
-        });
-    },
-
     _continueLaunch: function() {
 
         this.on('redrawNodeTree', function() {
@@ -2404,6 +2497,82 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         this.callParent(arguments);
         this.addEvents('redrawNodeTree');
     },
+
+    _fetchMilestones: function() {
+        var deferred = Ext.create('Deft.Deferred');
+
+        Ext.create('Rally.data.wsapi.Store',{
+            model: 'Milestone',
+            autoLoad: true,
+            fetch: true,
+            listeners: {
+                load: function(store, results) {
+                    if (store.getRecords().length) {
+                        gApp._MilestoneStore = store;
+                        deferred.resolve(results);
+                    }
+                    else {
+                        deferred.resolve(null);
+                    }
+                }
+            }
+        });
+        return deferred.promise;
+
+    },
+
+    _renderMilestones: function(results) {
+debugger;
+    },
+
+    launch: function() {
+
+        var me = this;
+        gApp = me;
+
+        //We need to get all the usual models before we continue. We will get the portfolio models from the item type selector
+        Deft.Chain.parallel( [
+            this._getUserStoryModel,
+            this._getTaskModel,
+            this._getDefectModel
+        ], this). then ({
+            success: this._continueLaunch,
+            failure: function() {
+                Rally.ui.notify.Notifier.showWarning({ message: 'Failed to fetch artefact models'});
+            },
+            scope: me
+        });
+
+        //Now find all the milestones that affect this node. Two types: global, and project specific
+
+        Deft.Chain.pipeline( [
+            gApp._fetchMilestones,
+//            gApp._renderMilestones Can't render these until we have set up the svg panels.
+        ], this). then ({
+            success: function(results) {
+                if (results === null) { 
+                    Rally.ui.notify.Notifier.showWarning({ message: 'No Milestones available'});
+                    return;
+                }
+
+                var globalMls = _.filter(results, function(mls) {
+                    return !(mls.get('TotalProjectCount'));
+                })
+                if (globalMls.length === 0 ) {
+                    Rally.ui.notify.Notifier.showWarning({ message: results.length.toString() + ' Project Milestones available'});
+                }
+                else if (globalMls.length === results.length) {
+                    Rally.ui.notify.Notifier.showWarning({ message: results.length.toString() + ' Global Milestones available'});
+                }
+                else {
+                    Rally.ui.notify.Notifier.showWarning({ message: globalMls.length.toString() + ' Global and ' + 
+                        (results.length - globalMls.length).toString() + ' Project Milestones available'});
+                }
+            },
+            scope: me
+        });
+    },
+
 
 });
 }());
@@ -21515,7 +21684,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 .normalText:hover {
   fill: #888;
 }
-.todaysDate {
+.dateline {
   stroke-dasharray: 8 2;
   stroke: #88e;
   stroke-width: 1px;
@@ -21785,6 +21954,9 @@ text.chosenDate {
 }
 .icon-gear {
   fill: fuchsia;
+}
+.icon-gear-white {
+  fill: whitesmoke;
 }
 
     </style>

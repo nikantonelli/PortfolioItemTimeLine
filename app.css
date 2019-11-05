@@ -27,7 +27,7 @@
   fill: #888;
 }
 
-.todaysDate {
+.dateline {
   stroke-dasharray: 8 2;
   stroke: #88e;
   stroke-width: 1px;
@@ -234,4 +234,7 @@ text.chosenDate {
 
 .icon-gear {
   fill:fuchsia;
+}
+.icon-gear-white {
+  fill:whitesmoke;
 }
