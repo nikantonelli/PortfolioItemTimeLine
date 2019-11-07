@@ -352,34 +352,63 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         gApp._startTreeAgain();
     },
 
-    _switchChildren: function(d) {
-        if ( d.children) {
-            d._children = d.children;
-            d.children = null;
-            d._value = d.value;
-            d.value = 1;
-        } else {
-            d.children = d._children;
-            d._children = null;    
-            d.value = d._value;
-            d._value = 1;
-        }
+    _redrawChildren: function() {
+        gApp._sumNodeTree(gApp._nodeTree);
         d3.selectAll('.dependencyGroup').remove();
         gApp._removeSVGTree();
         gApp._restart();
     },
 
+    _closeChildren: function(d) {
+        if (d.children !== null) {  //Need this here in case we call close when we are already closed
+            d._children = d.children;
+            d.children = null;
+            d._value = d.value;
+            d.value = 1;
+        }
+    },
+
+    _openChildren: function(d) {
+        if (d._children !== null) {
+            d.children = d._children;
+            d._children = null;    
+            d.value = d._value;
+            d._value = 1;
+        }
+    },
+
+    _switchChildren: function(d) {
+        if ( d.children) {
+            gApp._closeChildren(d);
+        } else {
+            gApp._openChildren(d);
+        }
+        gApp._redrawChildren();
+    },
+
     _itemTreeClick: function(d) {
         var me = this;
-        if (d3.event.shiftKey === false) {
-            me._switchChildren(d);
-        }
-        else {
+        var openClose = (d.children === null);
+        //Shut/open this parents children only
+        if (d3.event.shiftKey === true)  {
             if (d.parent) {
-                _.each(d.parent.children, function(child){
-                    me._switchChildren(child);
+                _.each(d.parent.children, function(e){
+                    (openClose ===true)? me._openChildren(e):me._closeChildren(e);
                 });
             }
+        } 
+        //Shut/open all on this level
+        else if (d3.event.metaKey === true) {
+            gApp._nodeTree.each( function(e) {
+                if (e.depth === d.depth) {
+                    (openClose === true)? me._openChildren(e):me._closeChildren(e);
+                }
+            });
+            me._redrawChildren();
+        }
+        //Just change this one
+        else {
+            me._switchChildren(d);
         }
     },
 
@@ -692,7 +721,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _getGroupClass: function(d) {
-        var rClass = 'node clickable' + ((d.children || d._children)?' children':'');
+        var rClass = 'nodeGroup clickable' + ((d.children || d._children)?' children':'');
         if ( d.data.record.data._type.toLowerCase().includes('portfolioitem/')) {
             rClass += ' draggable';
         }
@@ -749,11 +778,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _setGroupTranslate: function(d, start, end){
-        var svgHeight = d3.select('#scaledSvg').attr('height');
         var x = gApp.dateScaler(start);
         var e = gApp.dateScaler(end);
         d.drawnX = (x<0?0:x);
-        d.drawnY = ((d.x0 * svgHeight) + (d.depth*gApp._rowHeight));
+        d.drawnY = ((d.x0 * (gApp._rowHeight *  gApp._nodeTree.value)) + (d.depth*gApp._rowHeight));
         d.drawnWidth = e - d.drawnX;
         d.drawnWidth = d.drawnWidth<0?0:d.drawnWidth;
         var retval =  "translate(" + d.drawnX + "," + d.drawnY + ")";
@@ -778,7 +806,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         //We need to ignore this and not draw anything", so we use 'filter' to remove
         
         //Let's scale to the dateline
-        var node = d3.select('#zoomTree').selectAll(".node")
+        var node = d3.select('#zoomTree').selectAll(".nodeGroup")
             .data(nodetree.descendants())
             .enter().filter(
                 function(d) {
@@ -851,7 +879,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .attr('y', 2)
             .attr('width', function(d) { return d.drawnWidth; })
             .attr('height',gApp._rowHeight-4)
-            .attr('fill', function(d) { return "url(#lg" + d.data.record.get('FormattedID');  })
+            .attr('fill', function(d) { return "url(#lg" + d.data.record.get('FormattedID') + ')';  })
 //            .attr('opacity', 0.5)
             .attr('stroke', function(d) {
                 return d.data.record.get('DisplayColor');
@@ -879,7 +907,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             //if the bar is missing completely
             .attr('width', function(d) { return (d.drawnWidth>10)?d.drawnWidth:svgWidth; })
             .attr('height',gApp._rowHeight)
-            .attr('class', 'arrowbox');
+            .attr('class', 'arrowbox')
+            .attr('id', function(d) { return 'arrow-'+d.data.Name;})
+            ;
 
         node.append('text')
             .attr('y', gApp._rowHeight/2)  //Should follow point size of font
@@ -1629,11 +1659,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                                 if ((d.data.record.data._type.startsWith('portfolioitem/')) &&
                                     (d.data.record.data.PortfolioItemType.Ordinal === 0)) {
                                         var dDeps = d3.selectAll('[class~=dependencyGroup]').filter(function() {
-                                            return this.getAttribute('id').startsWith('dep' + d.data.Name)
-                                        })
+                                            return this.getAttribute('id').startsWith('dep' + d.data.Name);
+                                        });
                                         dDeps.each( function () {
-                                            this.setAttribute('visibility', 'visible')
-                                        })
+                                            this.setAttribute('visibility', 'visible');
+                                        });
                                     }
                             });
                             break;
@@ -1645,11 +1675,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                             gApp._nodeTree.each( function(d) {
                                 if (d.data.record.data._type.toLowerCase() === 'hierarchicalrequirement') {
                                         var dDeps = d3.selectAll('[class~=dependencyGroup]').filter(function() {
-                                            return this.getAttribute('id').startsWith('dep' + d.data.Name)
-                                        })
+                                            return this.getAttribute('id').startsWith('dep' + d.data.Name);
+                                        });
                                         dDeps.each( function () {
-                                            this.setAttribute('visibility', 'visible')
-                                        })
+                                            this.setAttribute('visibility', 'visible');
+                                        });
                                     }
                             });
                             break;
@@ -1661,11 +1691,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                             gApp._nodeTree.each( function(d) {
                                 if (d.data.record.data._type.startsWith('portfolioitem/')) {
                                         var dDeps = d3.selectAll('[class~=dependencyGroup]').filter(function() {
-                                            return this.getAttribute('id').startsWith('dep' + d.data.Name)
-                                        })
+                                            return this.getAttribute('id').startsWith('dep' + d.data.Name);
+                                        });
                                         dDeps.each( function () {
-                                            this.setAttribute('visibility', 'visible')
-                                        })
+                                            this.setAttribute('visibility', 'visible');
+                                        });
                                     }
                             });
                             break;
@@ -1677,16 +1707,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         });
 
         hdrBox.add( depsTypeSelector);
-        // {
-        //     xtype: 'rallycheckboxfield',
-        //     fieldLabel: 'Show Dependencies',
-        //     name: 'showDeps',
-        //     id: 'showDeps',
-        //     value: false,
-        //     handler: function(cbox, value) {
-        //         d3.selectAll('.dependencyGroup').attr('visibility', value?'visible':'hidden');
-        //     }
-        // });
     },
 
     _nodes: [],
@@ -2190,11 +2210,15 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         (nodes);
     },
 
+    _sumNodeTree: function(tree) {
+        tree.each( function(d) { d.value = 0;});
+        return tree.sum(function(d) { return 1;});        // Set the dimensions in svg to match
+    },
+
     _createNodeTree: function (nodes) {
-        //Try to use d3.stratify to create nodet
+        //Try to use d3.stratify to create nodes
         var nodetree = gApp._stratifyNodeTree(nodes);
-        nodetree.sum(function(d) { return 1;});        // Set the dimensions in svg to match
-        gApp._nodeTree = nodetree;      //Save for later
+        gApp._nodeTree = gApp._sumNodeTree(nodetree);      //Save for later
         return nodetree;
     },
 
@@ -2218,7 +2242,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _addDateLine: function(drawnDate, classType) {
-        var st = d3.select('#datelineGroup')
+        var st = d3.select('#datelineGroup');
         var acceptedClasses = ['global-milestone','project-milestone', 'dateline']; //Match this with .css entries
 
         if (acceptedClasses.includes(classType)){
@@ -2271,7 +2295,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         gApp._removeCards();
 
         //Remove all the nodes we added
-        d3.select('#zoomTree').selectAll(".node").remove();
+        d3.select('#zoomTree').selectAll("[class~=nodeGroup]").remove();
     },
 
     _removeCards: function() {
@@ -2473,10 +2497,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         }
     },
 
+    _animation: null,
+
     _objectUpdated: function(update){
+            if (gApp._animation === null) {
+                gApp._animation = d3.easeElastic;
+                gApp._animation.amplitude(1.2).period(0.35);
+            }
             var d = gApp._findTreeNode(update.data._ref);
             var node = d3.select('#group-'+d.data.Name);
-            node.remove();
+//            node.remove();
             //Check if the record was part of the changes we have logged
             _.remove(gApp._changedItems, function(item) {
                 return (item.get('FormattedID') === d.data.record.get('FormattedID'));
@@ -2488,7 +2518,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             update.self.load(update.getId()).then({
                 success: function(record) {
                     d.data.record = record;
-                    gApp._restart();
+                    gApp._initGroupTranslate(d);
+                    node.select('#rect-'+d.data.Name).transition().ease(gApp._animation).duration(2000).attr('width', function(d) {
+                        return d.drawnWidth;
+                    });
+                    node.select('#arrow-'+d.data.Name).transition().ease(gApp._animation).duration(2000).attr('width', function(d) {
+                        return (d.drawnWidth>10)?d.drawnWidth:svgWidth;
+                    });
+                    node.transition().ease(gApp._animation).duration(2000).attr('transform', function(d) {
+                        return gApp._setGroupTranslate(d, d.startX, d.endX);
+                    });
                 }
             });
     },
@@ -2530,6 +2569,12 @@ debugger;
         var me = this;
         gApp = me;
 
+        //Set a default motion for timeline items
+        if (gApp._animation === null) {
+            gApp._animation = d3.easeElastic;
+            gApp._animation.amplitude(1.2).period(0.35);
+        }
+
         //We need to get all the usual models before we continue. We will get the portfolio models from the item type selector
         Deft.Chain.parallel( [
             this._getUserStoryModel,
@@ -2557,15 +2602,15 @@ debugger;
 
                 var globalMls = _.filter(results, function(mls) {
                     return !(mls.get('TotalProjectCount'));
-                })
+                });
                 if (globalMls.length === 0 ) {
-                    Rally.ui.notify.Notifier.showWarning({ message: results.length.toString() + ' Project Milestones available'});
+                    Rally.ui.notify.Notifier.show({ message: results.length.toString() + ' Project Milestones available'});
                 }
                 else if (globalMls.length === results.length) {
-                    Rally.ui.notify.Notifier.showWarning({ message: results.length.toString() + ' Global Milestones available'});
+                    Rally.ui.notify.Notifier.show({ message: results.length.toString() + ' Global Milestones available'});
                 }
                 else {
-                    Rally.ui.notify.Notifier.showWarning({ message: globalMls.length.toString() + ' Global and ' + 
+                    Rally.ui.notify.Notifier.show({ message: globalMls.length.toString() + ' Global and ' + 
                         (results.length - globalMls.length).toString() + ' Project Milestones available'});
                 }
             },
