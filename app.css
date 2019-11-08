@@ -27,12 +27,6 @@
   fill: #888;
 }
 
-.dateline {
-  stroke-dasharray: 8 2;
-  stroke: #88e;
-  stroke-width: 1px;
-}
-
 .dateText {
   background-color: white;
   fill: black
@@ -123,9 +117,41 @@ rect.chosenDate {
   fill: white;
 }
 
-.dateLineRect {
+line.dateline {
+  stroke: #000;
+  stroke-dasharray: 8 2;
   border: black solid 1px;
-  fill: white;
+  fill: black;
+}
+
+line.project--milestone {
+  stroke: green;
+  stroke-dasharray: 4 3;
+  border: green solid 1px;
+  fill: green;
+}
+line.global--milestone {
+  stroke: brown;
+  stroke-dasharray: 2 2;
+  border: brown solid 1px;
+  fill: brown;
+}
+
+circle.dateline {
+  stroke: black;
+  border: black solid 1px;
+  fill: black;
+}
+
+circle.project--milestone {
+  stroke: green;
+  border: green solid 1px;
+  fill: green;
+}
+circle.global--milestone {
+  stroke: brown;
+  border: brown solid 1px;
+  fill: brown;
 }
 
 text.chosenDate {

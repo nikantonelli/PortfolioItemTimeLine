@@ -12,6 +12,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             scaleToItems: true,
             showReleases: true,
             showIterations: true,
+            showPMilestones: true,
+            showGMilestones: true,
             allowMultiSelect: false,
             showFilter: true,
             onlyDependencies: false,
@@ -32,7 +34,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     statics: {
         //Be aware that each thread might kick off more than one activity. Currently, it could do three for a user story.
-        MAX_THREAD_COUNT: 32,  //More memory and more network usage the higher you go.
+        MAX_THREAD_COUNT: 16,  //More memory and more network usage the higher you go.
         LeftSVGWidth: 100,
         RightSVGWidth: 50,
         AxisSVGHeight: 30,
@@ -85,6 +87,18 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 name: 'showIterations',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Iterations at top',
+                labelAlign: 'top'
+            },
+            {
+                name: 'showPMilestones',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show Project Milestones',
+                labelAlign: 'top'
+            },
+            {
+                name: 'showGMilestones',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Show Global Milestones',
                 labelAlign: 'top'
             },
             {
@@ -200,6 +214,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             'PredecessorsAndSuccessors',
             'PreliminaryEstimate',
             'Project',
+            'Projects',
             'Ready',
             'Release',
             'Requirement',
@@ -2231,11 +2246,25 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .attr("id","datelineGroup");
 
         gApp._addDateLine(new Date(), 'dateline');
+
+        if (gApp._MilestoneStore) {
+            var records = gApp._MilestoneStore.getRecords();
+            _.each( records, function(record) {
+                if ( (record.get('Projects').Count > 0) && gApp.getSetting('showPMilestones')){
+                    gApp._addDateLine( record.get('TargetDate'),  'project--milestone' );
+
+                } 
+                else if ( (record.get('Projects').Count === 0) && gApp.getSetting('showGMilestones')) {
+                    gApp._addDateLine( record.get('TargetDate'), 'global--milestone');
+                }
+            });
+        }
+        
     },
 
     _addDateLine: function(drawnDate, classType) {
         var st = d3.select('#datelineGroup');
-        var acceptedClasses = ['global-milestone','project-milestone', 'dateline']; //Match this with .css entries
+        var acceptedClasses = ['global--milestone','project--milestone', 'dateline']; //Match this with .css entries
 
         if (acceptedClasses.includes(classType)){
             var linePos = gApp.dateScaler(drawnDate);
@@ -2250,7 +2279,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 .attr('width', 200)
                 .attr('height', 18);
             dateGroup.append('text')
-                .text(Ext.Date.format(drawnDate, 'F j, Y, g:i a'))
+                .text('(' + classType[0].toUpperCase() + ') ' + Ext.Date.format(drawnDate, 'F j, Y, g:i a'))
                 .attr('class', 'chosenDate')
                 .attr('y', 9)
                 .attr('x', 20)
@@ -2261,12 +2290,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 .attr('y1', 0)
                 .attr('x2', linePos)
                 .attr('y2', d3.select('svg').attr('height'))
-                .attr('class', 'dateline');
+                .attr('class', classType);
             st.append('circle')
                 .attr('cx',linePos)
                 .attr('cy', 3)
                 .attr('r', 3)
-                .attr('class', 'dateline')
+                .attr('class', classType)
                 .on('mouseover', function() {
                     dateGroup.attr('visibility', 'visible');
                 })
@@ -2529,6 +2558,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         this.addEvents('redrawNodeTree');
     },
 
+    _MilestoneStore: null,
+
     _fetchMilestones: function() {
         var deferred = Ext.create('Deft.Deferred');
 
@@ -2550,10 +2581,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         });
         return deferred.promise;
 
-    },
-
-    _renderMilestones: function(results) {
-debugger;
     },
 
     launch: function() {
