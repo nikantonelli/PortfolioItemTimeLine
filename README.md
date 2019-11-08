@@ -1,7 +1,7 @@
 Portfolio Item Tree Time Line
 =====================================
 
-![alt text](https://github.com/nikantonelli/PortfolioItemTimeLine/blob/With-Stories/Images/overview.png)
+![alt text](https://github.com/nikantonelli/PortfolioItemTimeLine/blob/master/Images/overview.png)
 
 ## Overview
 
