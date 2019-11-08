@@ -1630,7 +1630,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             ],
             proxy: {
                 type: 'ajax',
-                url: '/depsType.json',
+                url: 'depsType.json',
                 reader: {
                     type: 'json',
                     root: 'depsType'
