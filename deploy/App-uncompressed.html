@@ -387,28 +387,28 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _itemTreeClick: function(d) {
-        var me = this;
         var openClose = (d.children === null);
         //Shut/open this parents children only
         if (d3.event.altKey === true)  {
             if (d.parent) {
                 _.each(d.parent.children, function(e){
-                    (openClose ===true)? me._openChildren(e):me._closeChildren(e);
+                    var p = (openClose ===true)? gApp._openChildren(e):gApp._closeChildren(e);
                 });
             }
+            gApp._redrawChildren();
         } 
         //Shut/open all on this level
         else if (d3.event.metaKey === true) {
             gApp._nodeTree.each( function(e) {
                 if (e.depth === d.depth) {
-                    (openClose === true)? me._openChildren(e):me._closeChildren(e);
+                    var q = (openClose === true)? gApp._openChildren(e):gApp._closeChildren(e);
                 }
             });
-            me._redrawChildren();
+            gApp._redrawChildren();
         }
         //Just change this one
         else {
-            me._switchChildren(d);
+            gApp._switchChildren(d);
         }
 
         return true;
