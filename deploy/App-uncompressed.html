@@ -390,7 +390,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         var me = this;
         var openClose = (d.children === null);
         //Shut/open this parents children only
-        if (d3.event.shiftKey === true)  {
+        if (d3.event.altKey === true)  {
             if (d.parent) {
                 _.each(d.parent.children, function(e){
                     (openClose ===true)? me._openChildren(e):me._closeChildren(e);
@@ -410,6 +410,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         else {
             me._switchChildren(d);
         }
+
+        return true;
     },
 
     _dateRangeOfItems: function() {
@@ -706,11 +708,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         d.dragEnd =
             Ext.Date.add( new Date( d.data.record.get('PlannedEndDate')), Ext.Date.MILLI,
             gApp.dateScaler.invert(d3.event.x) - gApp.dateScaler.invert(d.dragInitStart));
-        var rClass = 'clickable draggable' + ((d.children || d._children)?' children':'');
-        if (gApp._schedulingErrors(d, d.dragStart, d.dragEnd)) {
-            rClass += ' data--errors';
-        }
-        arr[idx].setAttribute('class', rClass);
+        
+        arr[idx].setAttribute('class', gApp._getGroupClass(d));
         arr[idx].setAttribute('transform', gApp._setGroupTranslate(d, d.dragStart, d.dragEnd));
         //Whilst we drag, we need to keep the ones 'off the end' to the right size
         arr[idx].getElementsByClassName('dragTarget')[0].setAttribute('width', d.drawnWidth);
@@ -829,6 +828,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                     .on('end', gApp._dragEnd)
                     .on('start', gApp._dragStart)
                 );
+
+                node.exit().remove();
 
         var defs = node.append('defs')
             .append('linearGradient')
