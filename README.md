@@ -31,7 +31,7 @@ You can have just the timeline (no vertical colouring), timeline+releases, timel
 
 ## Dependencies
 
-All defined dependencies for the items shown can be revealed by using the check box at the top of the page.
+All defined dependencies for the items shown can be revealed by using the selection box at the top of the page. Choose 'All', 'User Stories', 'Features'(aka lowest level portfolio items) or all 'Portfolio Items'.
 
 If you have a lot of portfolio items and only want to see those with dependencies, there is an app setting for that too. If you select a single level of portfolio item, then you will see them all. If you are still on the multi-level view, then only the lowest level portfolio item dependencies are shown (as the default).
 
@@ -39,7 +39,11 @@ Hover over a dependency link dot and it will give you the dependency popover. Ho
 
 The dependencies are those that exist between the portfolio items. The user story dependencies are not rolled up in this app right now. However, you can get to them via the datapanel just mentioned.
 
-The dependency lines can be shown for just the lowest level item (usually Features) or you can ask for all of them by an option in the app settings. If you ask for all of them, then the higher level portfolio item dependencies are shown by dashed lines. The dashes get bigger the higher up the portfolio hierarchy the items are. Feature dependencies remain as solid lines.
+The dependency lines can be shown for just the lowest level item (usually Features) or you can ask for all of them. If you ask for all of them, then the higher level portfolio item dependencies are shown by dashed lines. The dashes get bigger the higher up the portfolio hierarchy the items are. Lowest level item dependencies remain as solid lines.
+
+## Milestones
+
+Select either Global Milestones (those with no project associations) in brown or Project Milestones in green. Dateline is in black.
 
 ## Scheduling Errors
 
@@ -49,7 +53,7 @@ The text of a bar goes red as well (and this is independent of dependencies).
 
 ## Improving visibility
 
-The up/down arrows to the far left of the bar will collapse/restore that portfolio item and it's corresponding children. Use shift-click to toggel the state of all the items at the same portfolio level as the one you clicked on. E.g. if they are all open, then shift-click on a Feature will close up all Features.
+The up/down arrows to the far left of the bar will collapse/restore that portfolio item and it's corresponding children. Use alt-click to toggle the state of all the items at the same portfolio level as the one you clicked on for that parent only. E.g. if all Features are open, then alt-click on a Feature will close up all Features below the parent Initiative. You can use the metaKey (on a Mac that is the 'command' key) to close every single item at the same level as the one you click on, regardless of which parent it is connected to.
 
 If you think the text is too small, you can set a "line size" in the options which will increase the bar width and the font size!
 
