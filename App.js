@@ -19,7 +19,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             onlyDependencies: false,
             lowestDependencies: false,
             pointsOrCount: false,
-            oneTypeOnly: false,
+            oneTypeOnly: true,
             cardHover: true,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
@@ -332,7 +332,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .attr('transform', 'translate(0,' + axisSvg.attr('height') + ')');    /* Place it after the axisSvg */
 
         
-        scaledSvg.attr('height', gApp._rowHeight *  nodetree.value)
+        scaledSvg.attr('height', gApp._rowHeight *  (nodetree.value?nodetree.value:1))
             .attr('width', outerSvg.attr('width') - ( gApp.self.LeftSVGWidth + gApp.self.RightSVGWidth))
             .attr('transform', 'translate(' + gApp.self.LeftSVGWidth + ',0)');
         
@@ -1828,18 +1828,18 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                         }
                     },
                     listeners: {
-                        inlinefilterchange: this._onFilterChange,
+                        inlinefilterchange: this._onFilterChange,   //This gets called on set up and then kicks off everything
                         inlinefilterready: this._onFilterReady,
                         scope: this
                     } 
                 }
             });
         }
-        if (gApp.getSetting('oneTypeOnly')){
+//        if (gApp.getSetting('oneTypeOnly')){
             //Get the records you can see of the type set in the piType selector
             //and call _getArtifacts with them.
-            gApp._fetchOneType();
-        }
+  //          gApp._fetchOneType();
+  //      }
     },
 
     _fetchOneType: function() {
@@ -1850,8 +1850,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         fetchConfig.pageSize = 2000;    //Wells Fargo..... Ouch!
         fetchConfig.listeners = {
             load: function(store,records,opts) {
-                if (store.getRecords().length > 0) {
-                    gApp._clearNodes();
+                gApp._clearNodes();
+                if (records.length > 0) {
                     gApp._nodes.push({'Name': 'Combined View',
                         'record': {
                             'data': {
@@ -1861,7 +1861,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                         },
                         'local':true
                     });
-                    gApp._getArtifacts(records, false);
+                    gApp._getArtifacts(records, gApp.getSetting('includeStories')|| gApp.getSetting('includeDefects'));
                 }
                 else {
                     gApp.setLoading(false);
@@ -2064,7 +2064,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     _getArtifacts: function(records, cascade) {
         gApp._nodes = gApp._nodes.concat( gApp._createNodes(records));
 
-        if ( cascade || gApp.getSetting('includeStories')|| gApp.getSetting('includeDefects') ) {
+        if ( cascade  ) {
             _.each(records, function(record) {
                 gApp._recordsToProcess.push(record);
             });
@@ -2200,7 +2200,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _getNodeTreeRecordId: function(record) {
-        return record.data._ref;
+        return record.data._ref.split('/').pop();
     },
 
     _stratifyNodeTree: function(nodes) {
