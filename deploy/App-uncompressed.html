@@ -36,7 +36,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             sortByTeam: true,
             includeStories: true,
             includeDefects: true,
-            includeTasks: false,
  
         }
     },
@@ -1848,12 +1847,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         if (gApp.getSetting('oneTypeOnly')){
             //Get the records you can see of the type set in the piType selector
             //and call _getArtifacts with them.
-            gApp.setLoading("Fetching Artefacts....");
             gApp._fetchOneType();
         }
     },
 
     _fetchOneType: function() {
+        gApp.setLoading("Fetching Artefacts....");
         var fetchConfig = gApp._fetchPIConfig(true);
         fetchConfig.model = gApp._getSelectedType();
         fetchConfig.autoLoad = true;
@@ -2066,8 +2065,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 Rally.util.Ref.getUrl(record.get('Defects')._ref):null,
             hasStories: (gApp.getSetting('includeStories') && record.hasField('UserStories') && (record.get('UserStories').Count > 0)) ?
                 Rally.util.Ref.getUrl(record.get('UserStories')._ref):null,
-            hasTasks: (gApp.getSetting('includeTasks') && record.hasField('Tasks') && (record.get('Tasks').Count > 0) ) ?
-                Rally.util.Ref.getUrl(record.get('Tasks')._ref):null
+            hasTasks: null  //Makes no sense here.
         };
         gApp._giveToThread(thread, msg);    //Send a wakeup message with an item
     },
@@ -2075,7 +2073,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     _getArtifacts: function(records, cascade) {
         gApp._nodes = gApp._nodes.concat( gApp._createNodes(records));
 
-        if ( cascade ) {
+        if ( cascade || gApp.getSetting('includeStories')|| gApp.getSetting('includeDefects') ) {
             _.each(records, function(record) {
                 gApp._recordsToProcess.push(record);
             });

@@ -23,7 +23,9 @@ The span of the item is used as a progress bar and shows a colour going from lef
 
 ## Team Level Items
 
-You can ask the app to fetch items in the work hierarchy. So that means you can get stories and defects (that are connected to stories only) into the view. If you put up the Iteration and Release timeboxes you can see  when things are scheduled
+You can ask the app to fetch items in the work hierarchy. So that means you can get stories and defects (that are connected to stories only) into the view. If you put up the Iteration and Release timeboxes you can see  when things are scheduled.
+
+NB: If you select to see one portfolio level only AND you ask for team level items, the 'one level only' gets overridden and you will get the hierarchy. This allows you to select all features, filter on a release (aka PI: Program Increment) and see all the Features and Stories associated with the PI
 
 ## Timeboxes
 
