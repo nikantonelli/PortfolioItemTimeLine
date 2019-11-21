@@ -1850,7 +1850,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         fetchConfig.pageSize = 2000;    //Wells Fargo..... Ouch!
         fetchConfig.listeners = {
             load: function(store,records,opts) {
-                if (records.length > 0) {
+                if (store.getRecords().length > 0) {
                     gApp._clearNodes();
                     gApp._nodes.push({'Name': 'Combined View',
                         'record': {
@@ -2248,12 +2248,19 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         if (gApp._MilestoneStore) {
             var records = gApp._MilestoneStore.getRecords();
             _.each( records, function(record) {
+                var dateGroup = null;
+
                 if ( (record.get('Projects').Count > 0) && gApp.getSetting('showPMilestones')){
-                    gApp._addDateLine( record.get('TargetDate'),  'project--milestone' );
+                    dateGroup = gApp._addDateLine( record.get('TargetDate'),  'project--milestone' );
 
                 } 
                 else if ( (record.get('Projects').Count === 0) && gApp.getSetting('showGMilestones')) {
-                    gApp._addDateLine( record.get('TargetDate'), 'global--milestone');
+                    dateGroup = gApp._addDateLine( record.get('TargetDate'), 'global--milestone');
+                }
+                if (dateGroup !== null) {
+                    dateGroup.select('circle').on('click', function() {
+                        Rally.nav.Manager.edit(record);
+                    });
                 }
             });
         }
@@ -2263,45 +2270,50 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     _addDateLine: function(drawnDate, classType) {
         var st = d3.select('#datelineGroup');
         var acceptedClasses = ['global--milestone','project--milestone', 'dateline']; //Match this with .css entries
+        var dateGroup = null;
 
         if (acceptedClasses.includes(classType)){
             var linePos = gApp.dateScaler(drawnDate);
             if ((linePos > 0) && (linePos < d3.select('#scaledSvg').attr('width'))) {
-            var dateGroup = st.append('g')
+            dateGroup = st.append('g')
                 .attr('transform', 'translate(' + linePos + ',0)' )
-                .attr('id', 'dateGroup')
+                .attr('id', 'dateGroup'+ Ext.Date.format(drawnDate, 'F-j-y-g-i-a'));
+            var dateText = dateGroup.append('g')
+                .attr('id','dateText'+ Ext.Date.format(drawnDate, 'F-j-y-g-i-a'))
                 .attr('visibility', 'hidden');
-            dateGroup.append('rect')
+
+            dateText.append('rect')
                 .attr('class', 'chosenDate')
                 .attr('x', 18)
                 .attr('width', 200)
                 .attr('height', 18);
-            dateGroup.append('text')
+                dateText.append('text')
                 .text('(' + classType[0].toUpperCase() + ') ' + Ext.Date.format(drawnDate, 'F j, Y, g:i a'))
                 .attr('class', 'chosenDate')
                 .attr('y', 9)
                 .attr('x', 20)
                 .attr('alignment-baseline', 'text-top');
 
-            st.append('line')
-                .attr('x1',linePos)
+            dateGroup.append('line')
+                .attr('x1',0)
                 .attr('y1', 0)
-                .attr('x2', linePos)
+                .attr('x2', 0)
                 .attr('y2', d3.select('svg').attr('height'))
                 .attr('class', classType);
-            st.append('circle')
-                .attr('cx',linePos)
+            dateGroup.append('circle')
+                .attr('cx',0)
                 .attr('cy', 3)
                 .attr('r', 3)
                 .attr('class', classType)
                 .on('mouseover', function() {
-                    dateGroup.attr('visibility', 'visible');
+                    dateText.attr('visibility', 'visible');
                 })
                 .on('mouseout', function() {
-                    dateGroup.attr('visibility', 'hidden');
+                    dateText.attr('visibility', 'hidden');
                 });
             }
         }
+        return dateGroup;
     },
 
     _removeSVGTree: function() {
