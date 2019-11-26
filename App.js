@@ -332,7 +332,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .attr('transform', 'translate(0,' + axisSvg.attr('height') + ')');    /* Place it after the axisSvg */
 
         
-        scaledSvg.attr('height', gApp._rowHeight *  (nodetree.value?nodetree.value:1))
+        scaledSvg.attr('height', gApp._rowHeight *  ((nodetree && nodetree.value)?nodetree.value:1))
             .attr('width', outerSvg.attr('width') - ( gApp.self.LeftSVGWidth + gApp.self.RightSVGWidth))
             .attr('transform', 'translate(' + gApp.self.LeftSVGWidth + ',0)');
         
@@ -1856,6 +1856,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                         'record': {
                             'data': {
                                 '_ref': 'root',
+                                '_type': 'root',
                                 'Name': ''
                             }
                         },
