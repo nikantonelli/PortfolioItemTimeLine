@@ -188,7 +188,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             'Children', //Default
             'CreationDate',
             'Defects', //Default
-            'Description',
+//            'Description',
             'DisplayColor', //Default
             'DragAndDropRank', //Default
             'EndDate',
@@ -197,7 +197,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             'Iteration', //Default
             'Milestones',
             'Name', //Default
-            'Notes',
+//            'Notes',
             'ObjectID',
             'OrderIndex', 
             'Ordinal',
@@ -214,7 +214,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             'PreliminaryEstimate', //Default
             'Project', //Default
             'Projects',
-            'Ready', //Default
+//            'Ready', //Default
             'Release', //Default
             'Requirement',
             'RevisionHistory',
