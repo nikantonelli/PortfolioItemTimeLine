@@ -19,14 +19,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             onlyDependencies: false,
             lowestDependencies: false,
             pointsOrCount: false,
-            oneTypeOnly: true,
+            oneTypeOnly: false,
             cardHover: true,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
             lineSize: 22,
             sortByTeam: true,
-            includeStories: true,
-            includeDefects: true,
+            includeStories: false,
+            includeDefects: false,
  
         }
     },
@@ -216,6 +216,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             'Projects',
 //            'Ready', //Default
             'Release', //Default
+            'ReleaseDate',
+            'ReleaseStartDate',
             'Requirement',
             'RevisionHistory',
             'ScheduleState', //Default
@@ -432,7 +434,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             var dateStart = null;
             var dateEnd = null;
 
-            var dates = gApp._getGroupTranslate(node);
+            var dates = gApp._calcGroupTranslate(node);
             dateStart = dates.startX;
             dateEnd = dates.endX;
         
@@ -487,7 +489,22 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         gApp._refreshTree();
     },
 
+    _findIterationInStore: function(startDate) {
+        var iterations = gApp._IterationStore ? gApp._IterationStore.getRecords() : [];
+
+        return _.find(iterations, function(iter) {
+            return (iter.get('StartDate') < startDate) && ( iter.get('EndDate') > startDate);
+        });
+    },
+
+    _IterationStore: null,
+
     _getIterations: function() {
+        if (gApp._IterationStore !== null) { 
+            gApp._setIterations(gApp._IterationStore.getRecords())
+            return;
+        }
+
         Ext.create('Rally.data.wsapi.Store', {
             model: 'Iteration',
             autoLoad: true,
@@ -518,6 +535,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             listeners: {
                 load: function(store, records, opts) {
                     if (store.getRecords().length) {
+                        gApp._IterationStore = store;
                         gApp._setIterations(records);
                     }
                 }
@@ -525,8 +543,22 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         });
     },
 
+    _findReleaseInStore: function(startDate) {
+        var releases = gApp._ReleaseStore ? gApp._ReleaseStore.getRecords() : [];
+
+        return _.find(releases, function(rel) {
+            return (rel.get('ReleaseStartDate') < startDate) && ( rel.get('ReleaseDate') > startDate);
+        });
+    },
+
+    _ReleaseStore: null,
 
     _getReleases: function() {
+        if ( gApp._ReleaseStore !== null) { 
+            gApp._setReleases(gApp._ReleaseStore.getRecords());
+            return;
+        }
+        
         Ext.create('Rally.data.wsapi.Store', {
             model: 'Release',
             autoLoad: true,
@@ -557,6 +589,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             listeners: {
                 load: function(store, records, opts) {
                     if (store.getRecords().length) {
+                        gApp._ReleaseStore = store;
                         gApp._setReleases(records);
                     }
                 }
@@ -600,7 +633,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .attr('class', 'normalText')
             .text( function(rel) {
                 var title = rel.get('Name');
-                return (rel.width > 80)? title: ((rel.width > 60)?(title.substr(1,3) + '...' + title.substr(-3,3)):'');
+                return (rel.width > 85)? title: ((rel.width > 80)?(title.substr(0,4) + '...' + title.substr(-4,4)):'');
             })
             .style("text-anchor", 'middle')
             .attr('alignment-baseline', 'central')
@@ -645,7 +678,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .attr('class', 'normalText')
             .text( function(rel) {
                 var title = rel.get('Name');
-                return (rel.width > 80)? title: ((rel.width > 60)?(title.substr(1,3) + '...' + title.substr(-3,3)):'');
+                return (rel.width > 85)? title: ((rel.width > 80)?(title.substr(0,4) + '...' + title.substr(-4,4)):'');
             })
             .style("text-anchor", 'middle')
             .attr('alignment-baseline', 'central')
@@ -671,7 +704,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         if (!d) {
             gApp._startTreeAgain();
         } else {
-            var dates = gApp._getGroupTranslate(d);
+            var dates = gApp._calcGroupTranslate(d);
             if (dates.startX && dates.endX) {
                 gApp._setTimeScaler(
                     dates.startX,
@@ -683,9 +716,28 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _dragEnd: function(d, idx, arr) {
+        
+        if (d3.event.x === d.dragInitStart ) { return; }
+
         //Now we have finished dragging, set up our initial x again
-        d.data.record.set('PlannedStartDate', d.dragStart);
-        d.data.record.set('PlannedEndDate', d.dragEnd);
+        if ( d.data.record.data._type.toLowerCase().includes('portfolioitem/')) {
+            d.data.record.set('PlannedStartDate', d.dragStart);
+            d.data.record.set('PlannedEndDate', d.dragEnd);
+        }
+        else {
+            //Find which iteration contains this date and change the record to that.
+            if (gApp.getSetting('showIterations')){
+                var iteration = gApp._findIterationInStore(d.dragStart);
+                if ( iteration ) {d.data.record.set('Iteration', iteration);}
+                else { debugger;}
+            }
+            if (gApp.getSetting('showReleases')){
+                var release = gApp._findReleaseInStore(d.dragStart);
+                if ( release ) {d.data.record.set('Release', release);}
+                else { debugger;}
+            }
+        }
+
         // Add/update this record in the array of changes
         _.remove(gApp._changedItems, function( item ) {
             return d.data.record.get('FormattedID') === item.get('FormattedID');
@@ -693,7 +745,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         gApp._changedItems.push(d.data.record);
         if (gApp.down('#saveRecords')) { gApp.down('#saveRecords').enable(); }
         if (gApp.down('#dropRecords')) { gApp.down('#dropRecords').enable(); }
-        gApp._restart();
+//        gApp._restart();
     },
 
     _dragStart: function(d, idx, arr) {
@@ -706,14 +758,23 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _dragged: function(d,idx,arr) {
-        d.dragStart = 
-            Ext.Date.add( new Date( d.data.record.get('PlannedStartDate')), Ext.Date.MILLI,
-            gApp.dateScaler.invert(d3.event.x) - gApp.dateScaler.invert(d.dragInitStart));
-            
-        d.dragEnd =
-            Ext.Date.add( new Date( d.data.record.get('PlannedEndDate')), Ext.Date.MILLI,
-            gApp.dateScaler.invert(d3.event.x) - gApp.dateScaler.invert(d.dragInitStart));
-        
+        if ( d.data.record.data._type.toLowerCase().includes('portfolioitem/')) {
+            d.dragStart = 
+                Ext.Date.add( new Date( d.data.record.get('PlannedStartDate')), Ext.Date.MILLI,
+                gApp.dateScaler.invert(d3.event.x) - gApp.dateScaler.invert(d.dragInitStart));
+                
+            d.dragEnd =
+                Ext.Date.add( new Date( d.data.record.get('PlannedEndDate')), Ext.Date.MILLI,
+                gApp.dateScaler.invert(d3.event.x) - gApp.dateScaler.invert(d.dragInitStart));
+        }
+        else {
+                d.dragStart =  
+                    Ext.Date.add( d.startX, Ext.Date.MILLI, gApp.dateScaler.invert(d3.event.x) - gApp.dateScaler.invert(d.dragInitStart));
+                    
+                d.dragEnd =
+                    Ext.Date.add( d.endX,   Ext.Date.MILLI, gApp.dateScaler.invert(d3.event.x) - gApp.dateScaler.invert(d.dragInitStart));
+        }
+        console.log('Dragging: ' + d.data.record.data.FormattedID + ' to ' + d.dragStart + ',' + d.dragEnd);
         arr[idx].setAttribute('class', gApp._getGroupClass(d));
         arr[idx].setAttribute('transform', gApp._setGroupTranslate(d, d.dragStart, d.dragEnd));
         //Whilst we drag, we need to keep the ones 'off the end' to the right size
@@ -726,9 +787,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _getGroupClass: function(d) {
         var rClass = 'nodeGroup clickable' + ((d.children || d._children)?' children':'');
-        if ( d.data.record.data._type.toLowerCase().includes('portfolioitem/')) {
+//        if ( d.data.record.data._type.toLowerCase().includes('portfolioitem/')) {
             rClass += ' draggable';
-        }
+//        }
         if (gApp._schedulingErrors(d)) {
             rClass += ' data--errors';
         }
@@ -736,12 +797,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _initGroupTranslate: function(d) {
-        var dates = gApp._getGroupTranslate(d);
+        var dates = gApp._calcGroupTranslate(d);
         d.startX = dates.startX;
         d.endX = dates.endX;
     },
 
-    _getGroupTranslate: function(node) {
+    _calcGroupTranslate: function(node) {
 
         var data = node.data;
         var d = {
@@ -776,6 +837,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 d.startX = new Date(data.InProgressDate);
                 d.endX = data.AcceptedDate?new Date(data.AcceptedDate):null;
             }
+            else {
+                d.startX = new Date();
+                d.endX = Ext.Date.add(d.startX, Ext.Date.DAY, 7)    //Make an unknown story stretch a week from today
+            }
         }
         return d;
         
@@ -799,9 +864,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     _refreshTree: function(){
 
         console.log(gApp._nodeTree);
-        var svgWidth = +d3.select('#scaledSvg').attr('width');
-        var partition = d3.partition();
-        var nodetree = partition(gApp._nodeTree);
+        var nodetree = d3.partition()(gApp._nodeTree);
         var healthField = gApp.getSetting('pointsOrCount')?'PercentDoneByStoryCount':'PercentDoneByStoryPlanEstimate';
         
         nodetree.eachBefore(gApp._initGroupTranslate);
@@ -810,31 +873,29 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         //We need to ignore this and not draw anything", so we use 'filter' to remove
         
         //Let's scale to the dateline
-        var node = d3.select('#zoomTree').selectAll(".nodeGroup")
-            .data(nodetree.descendants())
-            .enter().filter(
+        var nodeGroups = d3.select('#zoomTree').selectAll(".nodeGroup")
+            .data(nodetree.descendants());
+
+        var node = nodeGroups.enter().filter(
                 function(d) {
                     if (d.id === "root") { return false; }
                     return true;
                 }
-            ).append("g")
+            )
+            .append("g")
                 .attr('class', gApp._getGroupClass) //Call it directly, allowing d3 to pass in node
                 .attr('id', function(d) { return 'group-' + d.data.Name;})
-                .attr( 'transform', function(d) {
-                    var gt = gApp._setGroupTranslate(d, d.startX, d.endX);
-                    //Store for later use after we have calculated it
-                    d.iX = d.x;
-                    d.iE = d.e;
-                    return gt;
-                })
                 .call(d3.drag()
-                    .filter( function() { return (d3.event.target.nodeName !== 'text');})
                     .on('drag', gApp._dragged)
                     .on('end', gApp._dragEnd)
                     .on('start', gApp._dragStart)
-                );
+                )
+                .attr( 'transform', function(d) {
+                    var gt = gApp._setGroupTranslate(d, d.startX, d.endX);
+                    return gt;
+                });
 
-                node.exit().remove();
+        nodeGroups.exit().remove();
 
         var defs = node.append('defs')
             .append('linearGradient')
@@ -876,7 +937,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 }
             })
             .attr('stop-color', "#fff");
-            defs.append('opacity', 0.5);
+//            defs.append('opacity', 0.3);
                 
 
         var drags = node.append('rect')
@@ -911,7 +972,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         cp.append('rect')
             //Allow a little thing you can hover over, or show the whole text
             //if the bar is missing completely
-            .attr('width', function(d) { return (d.drawnWidth>10)?d.drawnWidth:svgWidth; })
+            .attr('width', function(d) { return (d.drawnWidth>10)?d.drawnWidth:+d3.select('#scaledSvg').attr('width'); })
             .attr('height',gApp._rowHeight)
             .attr('class', 'arrowbox')
             .attr('id', function(d) { return 'arrow-'+d.data.Name;})
@@ -1112,7 +1173,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             } 
         }
         else {
-            var dates = gApp._getGroupTranslate(d);   //Get the dates of the item (non-draggable, so start, end args ignored)
+            var dates = gApp._calcGroupTranslate(d);   //Get the dates of the item (non-draggable, so start, end args ignored)
             if (!dates.startX || !dates.endX) {return true;}
 
             /* WE DO NOT SUPPORT stories as children of stories. If you are using this mechanism: DON'T and speak to Rally about
@@ -1571,10 +1632,29 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 });
                 changeStore.add(gApp._changedItems);
                 _.each(changeStore.getRecords(), function (record) {
+
+                    if (!record.data._type.startsWith('portfolioitem/')){
+                        if ( gApp.getSetting('showIterations')) {
+                            record.newIteration = record.get('Iteration');
+                            record.set('Iteration', record.get('Iteration').get('_ref'));
+                        }
+                        if ( gApp.getSetting('showReleases')) {
+                            record.newRelease = record.get('Release');
+                            record.set('Release', record.get('Release').get('_ref'));
+                        }
+                    }
                     record.save().then ( {
                         success: function() {
-                            Rally.environment.getMessageBus().publish(Rally.Message.objectUpdate, record, ['PlannedStartDate', 'PlannedEndDate']);
-                            
+                            if (record.data._type.startsWith('portfolioitem/')) {
+                                Rally.environment.getMessageBus().publish(Rally.Message.objectUpdate, record, ['PlannedStartDate', 'PlannedEndDate']);
+                            }
+                            else {
+                                Rally.environment.getMessageBus().publish(Rally.Message.objectUpdate, record, ['Iteration']);
+                            }
+                            gApp._objectUpdated(record);
+                        },
+                        failure: function(e) {
+                            console.log("Save on buttonclick failed", e);
                         }
                     });
                 });
@@ -1595,12 +1675,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                     }).then( {
                         success: function(record) {
                             //Give it back to the node
+                            console.log('Resetting data for: ' + record.get('FormattedID'));
                             var d = gApp._findTreeNode(gApp._getNodeTreeRecordId(record));
+                            d.data.card = null; //Drop the card and re-create on next hover.
                             d.data.record = record;
-                            gApp._restart();
+                            gApp._startTreeAgain();
                         },
                         failure: function(){
-                            console.log("Save on buttonclick failed");
+                            console.log("Restore record on buttonclick failed");
                         }
                     });
                 });
@@ -1957,6 +2039,24 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         });
     },
 
+    _makeModel: function(item) {
+        switch (item._type.toLowerCase()) {
+            case 'hierarchicalrequirement' : {
+                return Ext.create(gApp._userStoryModel, item);
+            }
+            case 'defect' : {
+                return Ext.create(gApp._defectModel, item);
+            }
+            case 'task' : {
+                return Ext.create(gApp._taskModel, item);
+            }
+            default: {
+                //Portfolio Item
+                return Ext.create(gApp._portfolioItemModels[item._type.split('/').pop()], item);
+            }
+        }
+    },
+
     //This is in the context of the worker thread even though the code is here
     _threadMessage: function(msg) {
         if ((msg.data.response === 'Alive') && (msg.data.reply === 'Asleep')) {
@@ -1969,31 +2069,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             var records = [];
 
             _.each(msg.data.records, function(item) {
-                switch (item._type.toLowerCase()) {
-                    case 'hierarchicalrequirement' : {
-                        records.push(Ext.create(gApp._userStoryModel, item));
-                        break;
-                    }
-                    case 'defect' : {
-                        records.push(Ext.create(gApp._defectModel, item));
-                        break;
-                    }
-                    case 'task' : {
-                        records.push(Ext.create(gApp._taskModel, item));
-                        break;
-                    }
-                    default: {
-                        //Portfolio Item
-                        records.push(Ext.create(gApp._portfolioItemModels[item._type.split('/').pop()], item));
-                        break;
-                    }
-                }
+                records.push(gApp._makeModel(item));
             });
+
             if (records.length) {
                 gApp._getArtifacts(records, true);
             }
-
-
         }
         var thread = _.find(gApp._runningThreads, { id: msg.data.id});
         thread.state = 'Asleep';
@@ -2529,15 +2610,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         }
     },
 
-    _animation: null,
-
     _objectUpdated: function(update){
-            if (gApp._animation === null) {
-                gApp._animation = d3.easeElastic;
-                gApp._animation.amplitude(1.2).period(0.35);
-            }
-            var d = gApp._findTreeNode(update.data._ref);
-            var node = d3.select('#group-'+d.data.Name);
+            var d = gApp._findTreeNode(gApp._getNodeTreeRecordId(update));
+            if (d === null) { return;} 
+//            var node = d3.select('#group-'+d.data.Name);
 //            node.remove();
             //Check if the record was part of the changes we have logged
             _.remove(gApp._changedItems, function(item) {
@@ -2547,19 +2623,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 gApp.down('#saveRecords').disable();
                 gApp.down('#dropRecords').disable();
             }
-            update.self.load(update.getId()).then({
+            update.self.load(update.getId(), {
+                fetch: gApp.STORE_FETCH_FIELD_LIST
+            }).then({
                 success: function(record) {
                     d.data.record = record;
-                    gApp._initGroupTranslate(d);
-                    node.select('#rect-'+d.data.Name).transition().ease(gApp._animation).duration(2000).attr('width', function(d) {
-                        return d.drawnWidth;
-                    });
-                    node.select('#arrow-'+d.data.Name).transition().ease(gApp._animation).duration(2000).attr('width', function(d) {
-                        return (d.drawnWidth>10)?d.drawnWidth:svgWidth;
-                    });
-                    node.transition().ease(gApp._animation).duration(2000).attr('transform', function(d) {
-                        return gApp._setGroupTranslate(d, d.startX, d.endX);
-                    });
+                    var gt = gApp._calcGroupTranslate(d);
+                    gApp._setGroupTranslate(d, gt.startX, gt.endX)
+                    gApp._startTreeAgain(); 
                 }
             });
     },
@@ -2574,10 +2645,22 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     _fetchMilestones: function() {
         var deferred = Ext.create('Deft.Deferred');
 
+        var filters = Rally.data.wsapi.Filter.or([
+            {
+                property: 'Projects.ObjectID',
+                value: gApp.getContext().getProject().ObjectID
+            },
+            {
+                property: 'Projects.ObjectID',
+                value: null
+            }
+        ]);
+
         Ext.create('Rally.data.wsapi.Store',{
             model: 'Milestone',
             autoLoad: true,
             fetch: true,
+            filters: filters,
             listeners: {
                 load: function(store, results) {
                     if (store.getRecords().length) {
