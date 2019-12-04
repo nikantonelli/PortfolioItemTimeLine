@@ -34,7 +34,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
             lineSize: 22,
             sortByTeam: true,
-            includeStories: false,
+            includeStories: true,
             includeDefects: false,
  
         }
@@ -769,11 +769,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     _dragged: function(d,idx,arr) {
         if ( d.data.record.data._type.toLowerCase().includes('portfolioitem/')) {
             d.dragStart = 
-                Ext.Date.add( new Date( d.data.record.get('PlannedStartDate')), Ext.Date.MILLI,
+                Ext.Date.add( new Date( d.data.record.get('PlannedStartDate')? d.data.record.get('PlannedStartDate') : gApp.dateScaler.invert(d.dragInitStart)
+                    ), Ext.Date.MILLI,
                 gApp.dateScaler.invert(d3.event.x) - gApp.dateScaler.invert(d.dragInitStart));
                 
             d.dragEnd =
-                Ext.Date.add( new Date( d.data.record.get('PlannedEndDate')), Ext.Date.MILLI,
+                Ext.Date.add( new Date( d.data.record.get('PlannedEndDate')?d.data.record.get('PlannedEndDate'): gApp.dateScaler.invert(d.dragInitStart)
+                    ), Ext.Date.MILLI,
                 gApp.dateScaler.invert(d3.event.x) - gApp.dateScaler.invert(d.dragInitStart));
         }
         else {
@@ -835,8 +837,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             data = node.data.record.data;
             
             if (data._type.toLowerCase().includes('portfolioitem/')){
-                d.startX = data.PlannedStartDate?new Date(data.PlannedStartDate):null;
-                d.endX = data.PlannedEndDate?new Date(data.PlannedEndDate):null;
+                d.startX = data.PlannedStartDate?new Date(data.PlannedStartDate):new Date();
+                d.endX = data.PlannedEndDate?new Date(data.PlannedEndDate):d.startX;
             }
             else if (data.Iteration) {
                 d.startX = data.Iteration.StartDate? new Date( data.Iteration.StartDate):null;
@@ -848,7 +850,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             }
             else {
                 d.startX = new Date();
-                d.endX = Ext.Date.add(d.startX, Ext.Date.DAY, 7)    //Make an unknown story stretch a week from today
+                d.endX = d.startX;
+//                d.endX = Ext.Date.add(d.startX, Ext.Date.DAY, 7)    //Make an unknown story stretch a week from today
             }
         }
         return d;
@@ -861,7 +864,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         d.drawnX = (x<0?0:x);
         d.drawnY = ((d.x0 * (gApp._rowHeight *  gApp._nodeTree.value)) + (d.depth*gApp._rowHeight));
         d.drawnWidth = e - d.drawnX;
-        d.drawnWidth = d.drawnWidth<0?0:d.drawnWidth;
+        d.drawnWidth = d.drawnWidth<=0?gApp._rowHeight:d.drawnWidth;
         var retval =  "translate(" + d.drawnX + "," + d.drawnY + ")";
         return retval;
     },
@@ -981,7 +984,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         cp.append('rect')
             //Allow a little thing you can hover over, or show the whole text
             //if the bar is missing completely
-            .attr('width', function(d) { return (d.drawnWidth>10)?d.drawnWidth:+d3.select('#scaledSvg').attr('width'); })
+            .attr('width', function(d) { return (d.drawnWidth>gApp._rowHeight)?d.drawnWidth:+d3.select('#scaledSvg').attr('width'); })
             .attr('height',gApp._rowHeight)
             .attr('class', 'arrowbox')
             .attr('id', function(d) { return 'arrow-'+d.data.Name;})
