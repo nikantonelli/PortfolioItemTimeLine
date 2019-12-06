@@ -29,7 +29,11 @@ NB: If you select to see one portfolio level only AND you ask for team level ite
 
 ## Timeboxes
 
-You can have just the timeline (no vertical colouring), timeline+releases, timeline+iterations or  timeline+release+iterations
+You can have just the timeline (no vertical colouring), timeline+releases, timeline+iterations or  timeline+release+iterations. If you are running Kanban teams, then do not select Iterations or Releases and then you will be able to use a custom field to supply a "Target Date" or "Required By" date. User stories and Defects with this field
+will then be placed in the timeline with am icon that has a small sliver on it's righthand side so that you can get to the card pop-up. This sliver will be white if the story has no AcceptedDate or grey if it does. If you do not provide a correct field name or the contents of the field is not set, then the artefacts will be placed on the "Today's Date" line.
+
+![alt text](https://github.com/nikantonelli/PortfolioItemTimeLine/blob/master/Images/kanban.png)
+
 
 ## Dependencies
 
