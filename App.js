@@ -177,7 +177,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     _changedItems: [],
 
     itemId: 'rallyApp',
-    CARD_WIDTH:   200,        //Looks silly on less than this
+    CARD_WIDTH:   200,     
     STORE_FETCH_FIELD_LIST:
         [
             'AcceptedDate',     //For userstories and defects
@@ -205,6 +205,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             'Parent', //Default
             'PercentDoneByStoryCount',
             'PercentDoneByStoryPlanEstimate',
+            'PlanEstimate',
             'PlannedEndDate',
             'PlannedStartDate',
             'PortfolioItem',     //Default for userstories
@@ -225,6 +226,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             'State',
             'Successors',
             'Tags',
+            'TaskStatus',
             'UserStories',  //Children of Features
 //            'Workspace',
                             //Customer specific after here. Delete as appropriate
@@ -249,6 +251,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             'Project',
             'ScheduleState',
             'State',
+            'TaskStatus'
             //Customer specific after here. Delete as appropriate
             // 'c_ProjectIDOBN',
             // 'c_QRWP'
@@ -1225,16 +1228,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         if (node.data.record.data.ObjectID && gApp.getSetting('cardHover')) {
             //Only exists on real items, so do something for the 'unknown' item
             if ( !node.data.card) {
+                node.data.record.data.updatable = true;    //Hack!
                 var card = Ext.create('Rally.ui.cardboard.Card', {
                     'record': node.data.record,
+//                    fields: ['Name','ScheduleState', 'PlanEstimate', 'PreliminaryEstimate'],
                     fields: gApp.CARD_DISPLAY_FIELD_LIST,
                     constrain: false,
                     closable: true,
                     width: gApp.CARD_WIDTH,
                     height: 'auto',
-                    floating: true, //Allows us to control via the 'show' event
                     shadow: false,
-                    showAge: true,
+                    floating: true, //Allows us to control via the 'show' event
                     resizable: true,
                     listeners: {
                         show: function(card){
