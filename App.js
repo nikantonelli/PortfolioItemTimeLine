@@ -27,6 +27,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             sortByTeam: true,
             includeStories: true,
             includeDefects: false,
+            kanbanTeamDateField: 'TargetDate'
  
         }
     },
@@ -170,7 +171,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 name: 'lineSize',
                 minValue: 15,
                 labelAlign: 'top'
-            }        
+            }, 
+            {
+                xtype: 'rallytextfield',
+                fieldLabel: 'Kanban Team Date Field',
+                name: 'kanbanTeamDateField',
+                labelAlign: 'top'
+            }      
         ];
         return returned;
     },
@@ -504,7 +511,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _getIterations: function() {
         if (gApp._IterationStore !== null) { 
-            gApp._setIterations(gApp._IterationStore.getRecords())
+            gApp._setIterations(gApp._IterationStore.getRecords());
             return;
         }
 
@@ -732,12 +739,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             if (gApp.getSetting('showIterations')){
                 var iteration = gApp._findIterationInStore(d.dragStart);
                 if ( iteration ) {d.data.record.set('Iteration', iteration);}
-                else { debugger;}
+                else { console.log('Cannot find Iteration in the store');}
             }
             if (gApp.getSetting('showReleases')){
                 var release = gApp._findReleaseInStore(d.dragStart);
                 if ( release ) {d.data.record.set('Release', release);}
-                else { debugger;}
+                else { console.log('Cannot find Release in the store');}
+            }
+
+            if ( gApp.getSetting('kanbanTeamDateField') !== '' ) {
+                d.data.record.set(gApp.getSetting('kanbanTeamDateField'), d.dragStart);
             }
         }
 
@@ -834,9 +845,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 d.startX = data.PlannedStartDate?new Date(data.PlannedStartDate):new Date();
                 d.endX = data.PlannedEndDate?new Date(data.PlannedEndDate):d.startX;
             }
-            else if (data.Iteration) {
+            else if (data.Iteration && gApp.getSetting('showIterations')) {
                 d.startX = data.Iteration.StartDate? new Date( data.Iteration.StartDate):null;
                 d.endX = data.Iteration.EndDate?new Date(data.Iteration.EndDate):null;
+            }
+            else if (data.Release&& gApp.getSetting('showReleases')) {
+                d.startX = data.Release.ReleaseStartDate? new Date( data.Release.ReleaseStartDate):null;
+                d.endX = data.Release.ReleaseDate?new Date(data.Release.ReleaseDate):null;
+            }
+            else if ( (gApp.getSetting('kanbanTeamDateField') !== '') && (data['c_' + gApp.getSetting('kanbanTeamDateField')] ) ){
+                d.startX = new Date(data['c_' + gApp.getSetting('kanbanTeamDateField')]);
+                d.endX = d.startX;
             }
             else if (data.InProgressDate){
                 d.startX = new Date(data.InProgressDate);
@@ -924,7 +943,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 }
                 else {
                     if ( d.data.record.data.AcceptedDate) {
-                        return '#e0e0e0';
+                        return '#c0c0c0';
                     }
                     else {
                         return '#ffffff';
@@ -1484,18 +1503,18 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                                     operator: '=',
                                     value: ''
                                 },
-                                fetch: gApp.STORE_FETCH_FIELD_LIST,
+                                fetch: gApp._getArtefactFetchList(),
                                 pageSize: 50
                             };
                         default:
                             return {
-                                fetch: gApp.STORE_FETCH_FIELD_LIST,
+                                fetch: gApp._getArtefactFetchList(),
                                 pageSize: 50
                             };
                     }
                 }
                 else return {
-                    fetch: gApp.STORE_FETCH_FIELD_LIST,
+                    fetch: gApp._getArtefactFetchList(),
                     pageSize: 50                                                    
                 };
             },
@@ -1511,12 +1530,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                                     operator: '!=',
                                     value: ''
                                 }],
-                                fetch: gApp.STORE_FETCH_FIELD_LIST,
+                                fetch: gApp._getArtefactFetchList(),
                                 pageSize: 50
                             };
                     }
                 else return {
-                    fetch: gApp.STORE_FETCH_FIELD_LIST,
+                    fetch: gApp._getArtefactFetchList(),
                     pageSize: 50
                 };
             },
@@ -1639,6 +1658,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 });
                 changeStore.add(gApp._changedItems);
                 _.each(changeStore.getRecords(), function (record) {
+                    var kanbanDateField = gApp.getSetting('kanbanTeamDateField');
+
+                    // if ((kanbanDateField !== '') && record.get(kanbanDateField) !== undefined){
+                    //     record.set(kanbanDateField)
+                    // }
 
                     if (!record.data._type.startsWith('portfolioitem/')){
                         if ( gApp.getSetting('showIterations')) {
@@ -1678,7 +1702,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             handler: function() {
                 _.each(gApp._changedItems, function(item) {
                     item.self.load(item.getId(), {
-                        fetch: gApp.STORE_FETCH_FIELD_LIST,
+                        fetch: gApp._getArtefactFetchList(),
                     }).then( {
                         success: function(record) {
                             //Give it back to the node
@@ -1971,6 +1995,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         }
     },
 
+    _getArtefactFetchList: function() {
+        var list = gApp.STORE_FETCH_FIELD_LIST;
+        if (gApp.getSetting('kanbanTeamDateField') !== '') { list.push('c_' + gApp.getSetting('kanbanTeamDateField')); }
+        return list;
+    },
+
     _fetchPIConfig: function(lowest){
         var collectionConfig = {
             sorters: [
@@ -1979,7 +2009,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                     direction: 'ASC'
                 }
             ],
-            fetch: gApp.STORE_FETCH_FIELD_LIST,
+            fetch: gApp._getArtefactFetchList(),
             
             filters: []
         };
@@ -2042,7 +2072,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         gApp._giveToThread(thread, {
             command: 'initialise',
             id: thread.id,
-            fields: gApp.STORE_FETCH_FIELD_LIST.concat([gApp._getModelFromOrd(0).split("/").pop()])
+            fields: gApp._getArtefactFetchList().concat([gApp._getModelFromOrd(0).split("/").pop()])
         });
     },
 
@@ -2631,12 +2661,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 gApp.down('#dropRecords').disable();
             }
             update.self.load(update.getId(), {
-                fetch: gApp.STORE_FETCH_FIELD_LIST
+                fetch: gApp._getArtefactFetchList()
             }).then({
                 success: function(record) {
                     d.data.record = record;
                     var gt = gApp._calcGroupTranslate(d);
-                    gApp._setGroupTranslate(d, gt.startX, gt.endX)
+                    gApp._setGroupTranslate(d, gt.startX, gt.endX);
                     gApp._startTreeAgain(); 
                 }
             });
