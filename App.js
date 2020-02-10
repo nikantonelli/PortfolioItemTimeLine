@@ -9,7 +9,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         defaultSettings: {
             hideArchived: true,
             showTimeLine: true,
-            scaleToItems: true,
+            scaleToItems: false,
             showReleases: true,
             showIterations: true,
             showPMilestones: true,
@@ -19,7 +19,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             onlyDependencies: false,
             lowestDependencies: false,
             pointsOrCount: false,
-            oneTypeOnly: false,
+            oneTypeOnly: true,
             cardHover: true,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
@@ -27,11 +27,15 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             sortByTeam: true,
             includeStories: true,
             includeDefects: false,
-            kanbanTeamDateField: 'TargetDate'
+            kanbanTeamDateField: 'TargetDate',
+            autoUpdateTime: 30
  
         }
     },
 
+    integrationHeaders : {
+        name : "niks-apps-portfolioitem-timeline-2"
+    },
     statics: {
         //Be aware that each thread might kick off more than one activity. Currently, it could do three for a user story.
         MAX_THREAD_COUNT: 16,  //More memory and more network usage the higher you go.
@@ -54,8 +58,24 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 console.log('Resizing to: ' + item.getSize().width + ',' + item.getSize().height);
                 gApp._restartMainApp(gApp._nodeTree);
             });
+        },
+
+        rcvErrorMessage: function(msg) {
+            Rally.ui.notify.Notifier.showError({
+                message: msg.data.error + ' returned for children fetch on thread id: ' + msg.data.id
+            });
+            gApp._outstanding -= 1;
+        },
+        
+        rcvDataMessage: function() {
+             gApp._outstanding -= 1;
+        },
+        
+        sndDataMessage: function(d) {
+            gApp._outstanding += d;
         }
-    },
+     },
+
 
     getSettingsFields: function() {
         var returned = [
@@ -63,125 +83,181 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 name: 'hideArchived',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Hide Archived',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             }, 
             {
                 name: 'showTimeLine',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show dates at top',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 name: 'scaleToItems',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Scale to Items Selected',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 name: 'showReleases',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Releases at top',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 name: 'showIterations',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Iterations at top',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 name: 'showPMilestones',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Project Milestones',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 name: 'showGMilestones',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Global Milestones',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 name: 'includeStories',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Stories',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 name: 'includeDefects',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Defects',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 name: 'allowMultiSelect',
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Enable multiple start items (Note: Page Reload required if you change value)',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show Advanced filter',
                 name: 'showFilter',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Only items with dependencies',
                 name: 'onlyDependencies',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Only Feature dependencies',
                 name: 'lowestDependencies',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Colour by Story Count',
                 name: 'pointsOrCount',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Show one type only',
                 name: 'oneTypeOnly',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },
             {
                 xtype: 'rallycheckboxfield',
                 fieldLabel: 'Allow card pop-up on hover',
                 name: 'cardHover',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right'
             },{
                 xtype: 'rallydatefield',
                 fieldLabel: 'Start Date',
-                name: 'startDate',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right',
+                name: 'startDate'
             },{
                 xtype: 'rallydatefield',
                 fieldLabel: 'End Date',
-                name: 'endDate',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right',
+                name: 'endDate'
             },
             {
                 xtype: 'rallynumberfield',
                 fieldLabel: 'Grid bar width',
                 name: 'lineSize',
-                minValue: 15,
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right',
+                minValue: 15
             }, 
             {
                 xtype: 'rallytextfield',
                 fieldLabel: 'Kanban Team Date Field',
-                name: 'kanbanTeamDateField',
-                labelAlign: 'top'
+                labelWidth: 250,
+                labelAlign: 'right',
+                name: 'kanbanTeamDateField'
+            },
+            {
+                xtype: 'rallynumberfield',
+                fieldLabel: 'Auto Redraw Period',
+                labelWidth: 250,
+                labelAlign: 'right',
+                name: 'autoUpdate',
+                minValue: 20
+            }, {
+                xtype: 'textarea',
+                fieldLabel: 'Query',
+                labelWidth: 250,
+                labelAlign: 'right',
+                name: 'query',
+                anchor: '100%',
+                cls: 'query-field',
+                margin: '0 70 0 0',
+                plugins: [{
+                    ptype: 'rallyhelpfield',
+                    helpId: 194
+                },
+                    'rallyfieldvalidationui'
+                ],
+                validateOnBlur: false,
+                validateOnChange: false,
+                validator: function (value) {
+                    try {
+                        if (value) {
+                            Rally.data.wsapi.Filter.fromQueryString(value);
+                        }
+                        return true;
+                    } catch (e) {
+                        return e.message;
+                    }
+                }
             }      
         ];
         return returned;
     },
     _changedItems: [],
+    _outstanding: 0,
 
     itemId: 'rallyApp',
     CARD_WIDTH:   200,     
@@ -272,10 +348,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         gApp.timer = setTimeout(callFunc, 2000);    //Debounce user selections to the tune of two seconds
     },
 
+    _redrawTimer: function() {
+        gApp.fireEvent('redrawNodeTree');
+    },
     _nodeTree: null,
 
     //Continuation point after selectors ready/changed
     _enterMainApp: function() {
+
+        //If timer redraw required, enable it here
+        
         //Get all the nodes and the "Unknown" parent virtual nodes
         var nodetree = gApp._createNodeTree(gApp._nodes);
         gApp._rowHeight = gApp.getSetting('lineSize') || 22;
@@ -790,7 +872,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 d.dragEnd =
                     Ext.Date.add( d.endX,   Ext.Date.MILLI, gApp.dateScaler.invert(d3.event.x) - gApp.dateScaler.invert(d.dragInitStart));
         }
-        console.log('Dragging: ' + d.data.record.data.FormattedID + ' to ' + d.dragStart + ',' + d.dragEnd);
+//        console.log('Dragging: ' + d.data.record.data.FormattedID + ' to ' + d.dragStart + ',' + d.dragEnd);
         arr[idx].setAttribute('class', gApp._getGroupClass(d));
         arr[idx].setAttribute('transform', gApp._setGroupTranslate(d, d.dragStart, d.dragEnd));
         //Whilst we drag, we need to keep the ones 'off the end' to the right size
@@ -859,7 +941,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             }
             else if (data.InProgressDate){
                 d.startX = new Date(data.InProgressDate);
-                d.endX = data.AcceptedDate?new Date(data.AcceptedDate):null;
+                d.endX = data.AcceptedDate?new Date(data.AcceptedDate):d.startX;
             }
             else {
                 d.startX = new Date();
@@ -888,7 +970,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _refreshTree: function(){
 
-        console.log(gApp._nodeTree);
+//        console.log(gApp._nodeTree);
         var nodetree = d3.partition()(gApp._nodeTree);
         var healthField = gApp.getSetting('pointsOrCount')?'PercentDoneByStoryCount':'PercentDoneByStoryPlanEstimate';
         
@@ -1706,7 +1788,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                     }).then( {
                         success: function(record) {
                             //Give it back to the node
-                            console.log('Resetting data for: ' + record.get('FormattedID'));
+//                            console.log('Resetting data for: ' + record.get('FormattedID'));
                             var d = gApp._findTreeNode(gApp._getNodeTreeRecordId(record));
                             d.data.card = null; //Drop the card and re-create on next hover.
                             d.data.record = record;
@@ -1844,6 +1926,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _onFilterChange: function(inlineFilterButton){
         gApp.advFilters = inlineFilterButton.getTypesAndFilters().filters;
+        
         inlineFilterButton._previousTypesAndFilters = inlineFilterButton.getTypesAndFilters();
         if ( gApp._nodes.length) {
             gApp._clearNodes();
@@ -1871,7 +1954,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             if ( selector) {
                 selector.destroy();
             }
-            var filters = [];
             var storeConfig = gApp._fetchPIConfig(true);
             storeConfig.models = [ 'portfolioitem/' + ptype.rawValue ];
             storeConfig.context = gApp.getContext().getDataContext();
@@ -1982,7 +2064,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 }
             },
             change: function (a,b,c,d,e,f) {
-                console.log('change: ',arguments);
+//                console.log('change: ',arguments);
             }
         };
         Ext.create ('Rally.data.wsapi.Store', Ext.clone(fetchConfig));
@@ -2043,6 +2125,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 collectionConfig.filters.push(gApp.timeboxScope.getQueryFilter());
             }
         }
+        //Now get the settings query box and apply those settings
+        var queryString = gApp.getSetting('query');
+        if (queryString) {
+            var filterObj = Rally.data.wsapi.Filter.fromQueryString(queryString);
+            filterObj.itemId = filterObj.toString();
+            collectionConfig.filters.push(filterObj);
+        }
+        collectionConfig.filters = Rally.data.wsapi.Filter.and(collectionConfig.filters)
         return Ext.clone(collectionConfig);
     },
 
@@ -2104,6 +2194,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         //Records come back as raw info. We need to make proper Rally.data.WSAPI.Store records out of them
         if (msg.data.reply === 'Data') {
             var records = [];
+            gApp.fireEvent('rcvDataMessage');
 
             _.each(msg.data.records, function(item) {
                 records.push(gApp._makeModel(item));
@@ -2113,6 +2204,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 gApp._getArtifacts(records, true);
             }
         }
+        else if ((msg.data.error !== '')) {
+            gApp.fireEvent('rcvErrorMessage', msg);
+        }
+
         var thread = _.find(gApp._runningThreads, { id: msg.data.id});
         thread.state = 'Asleep';
         //Farm out more if needed
@@ -2127,8 +2222,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     _allThreadsIdle: function() {
-        return _.every(gApp._runningThreads, function(thread) {
-            return thread.state === 'Asleep';
+        return (gApp._outstanding === 0) && _.every(gApp._runningThreads, function(thread) {
+            return gApp._checkThreadState(thread) === 'Asleep';
         });
     },
 
@@ -2175,9 +2270,20 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 Rally.util.Ref.getUrl(record.get('Defects')._ref):null,
             hasStories: (gApp.getSetting('includeStories') && record.hasField('UserStories') && (record.get('UserStories').Count > 0)) ?
                 Rally.util.Ref.getUrl(record.get('UserStories')._ref):null,
-            hasTasks: null  //Makes no sense here.
+            hasTasks: null,  //Makes no sense here.
+            hasTestCases: null //Makes no sense here.
         };
-        gApp._giveToThread(thread, msg);    //Send a wakeup message with an item
+        var outstanding = 
+            (msg.hasChildren?1:0) + 
+            (msg.hasDefects?1:0) + 
+            (msg.hasStories?1:0) + 
+            (msg.hasTasks?1:0) + 
+            (msg.hasTestCases?1:0);
+
+        if (outstanding) {
+            gApp.fireEvent('sndDataMessage',outstanding);
+            gApp._giveToThread(thread, msg);    //Send a wakeup message with an item
+        }
     },
 
     _getArtifacts: function(records, cascade) {
