@@ -28,7 +28,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             includeStories: true,
             includeDefects: false,
             kanbanTeamDateField: 'TargetDate',
-            autoUpdateTime: 30
+            autoUpdateTime: 0   //Set to something to fire it.
  
         }
     },
@@ -223,8 +223,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 fieldLabel: 'Auto Redraw Period',
                 labelWidth: 250,
                 labelAlign: 'right',
-                name: 'autoUpdate',
-                minValue: 20
+                name: 'autoUpdateTime'
             }, {
                 xtype: 'textarea',
                 fieldLabel: 'Query',
@@ -342,7 +341,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         ],
 
     timer: null,
-    
+    redrawTimer: null,
+
     _resetTimer: function(callFunc) {
         if ( gApp.timer) { clearTimeout(gApp.timer);}
         gApp.timer = setTimeout(callFunc, 2000);    //Debounce user selections to the tune of two seconds
@@ -350,7 +350,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _redrawTimer: function() {
         gApp.fireEvent('redrawNodeTree');
+        gApp._setRedrawTimer();
     },
+
+    _setRedrawTimer: function() {
+        var timeout = gApp.getSetting('autoUpdateTime');
+        if ( timeout > 0) {
+            if ( gApp.redrawTimer) { clearTimeout(gApp.redrawTimer); }
+            gApp.redrawTimer = setTimeout(gApp._redrawTimer, timeout * 1000);
+        }
+    },
+
     _nodeTree: null,
 
     //Continuation point after selectors ready/changed
@@ -2217,7 +2227,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         }
 
         if ( gApp._allThreadsIdle()) {
-            gApp.fireEvent('redrawNodeTree');
+            gApp._redrawTimer();
         }
     },
 
@@ -2296,7 +2306,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             gApp._checkThreadActivity();
         }
         else {
-            this.fireEvent('redrawNodeTree');
+            gApp._redrawTimer();
         }
     },
 
