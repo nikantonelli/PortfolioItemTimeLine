@@ -19,7 +19,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             onlyDependencies: false,
             lowestDependencies: false,
             pointsOrCount: false,
-            oneTypeOnly: true,
+            oneTypeOnly: false,
             cardHover: true,
             startDate: Ext.Date.subtract(new Date(), Ext.Date.DAY, 30),
             endDate: Ext.Date.add(new Date(), Ext.Date.DAY, 150),
@@ -724,7 +724,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 return rel.width<4?2:rel.width;
             })
             .attr('class', function( rel, idx, arr) {
-                return 'q' + (idx%2) + '-' + 2;
+                return (idx%2)?'oddrelease':'evenrelease';
             })
             .attr('opacity', gApp.getSetting('showIterations')?0.3:0.5);
         relGroups.append('text')
@@ -770,7 +770,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 return rel.width<4?2:rel.width;
             })
             .attr('class', function( rel, idx, arr) {
-                return idx%2 ? 'odd': 'even';
+                return (idx%2) ? 'odditeration': 'eveniteration';
             });
         iterGroups.append('text')
             .attr('x', function(rel) { return rel.width/2;})
@@ -1817,9 +1817,9 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
         Ext.define('depsType', {
             extend: 'Ext.data.Model',
-            fields: [
-                'value',
-                'name'
+            fields: [ 
+                { name: 'value', type: 'int' },
+                { name: 'name', type: 'string'}
             ]
         });
 
@@ -1833,14 +1833,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 { value: 4, name: 'Portfolio Item Only'},
             ],
             proxy: {
-                type: 'ajax',
-                url: 'depsType.json',
+                type: 'memory',
                 reader: {
                     type: 'json',
-                    root: 'depsType'
+                    root: 'deps'
                 }
-            },
-            autoLoad: true
+            }
         });
         var depsTypeSelector = Ext.create('Ext.form.field.ComboBox', {
 //            queryMode: 'local',
@@ -2142,7 +2140,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             filterObj.itemId = filterObj.toString();
             collectionConfig.filters.push(filterObj);
         }
-        collectionConfig.filters = Rally.data.wsapi.Filter.and(collectionConfig.filters)
+        collectionConfig.filters = Rally.data.wsapi.Filter.and(collectionConfig.filters);
         return Ext.clone(collectionConfig);
     },
 

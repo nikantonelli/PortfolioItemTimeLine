@@ -159,21 +159,33 @@ text.chosenDate {
 }
 
 .releases {
-  font-size: 12pt;
+  font-size: 10pt;
   font-family: NotoSans,Helvetica,Arial;
 
 }
 .iterations {
-  font-size: 12pt;
+  font-size: 10pt;
   font-family: NotoSans,Helvetica,Arial;
 
 }
 
-.odd {
+.odditeration {
   fill: none;
+  stroke: grey;
+  stroke-width: 1;
 }
-.even {
-  fill: rgb(116,169,207);
+.eveniteration {
+  fill: rgb(189,201,225);
+  opacity: 0.5;
+}
+
+.oddrelease {
+  fill: none;
+  stroke: grey;
+  stroke-width: 1;
+}
+.evenrelease {
+  fill: rgb(208,209,230);
   opacity: 0.5;
 }
 
