@@ -27,7 +27,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             sortByTeam: true,
             includeStories: true,
             includeDefects: false,
-            kanbanTeamDateField: 'TargetDate',
+            kanbanTeamDateField: '',
             autoUpdateTime: 0   //Set to something to fire it.
  
         }
@@ -851,6 +851,10 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         gApp._changedItems.push(d.data.record);
         if (gApp.down('#saveRecords')) { gApp.down('#saveRecords').enable(); }
         if (gApp.down('#dropRecords')) { gApp.down('#dropRecords').enable(); }
+
+        //redo dependency lines if appropriate
+
+        
 //        gApp._restart();
     },
 
@@ -975,7 +979,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
     
     _getFontSize: function() {
-        return ((gApp._rowHeight>22)?(gApp._rowHeight-12): 10).toString(); //Smallest font of 8
+        return ((gApp._rowHeight>22)?(gApp._rowHeight-12): 10); //Smallest font of 8
     },
 
     _refreshTree: function(){
@@ -1141,105 +1145,17 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 }
                 return lClass;
             })
-            .attr('style', 'font-size:' + (gApp._getFontSize()-1))
+            .attr('style', 'font-size:' + (gApp._getFontSize()+6))
             .attr('alignment-baseline', 'central')
             .text(function(d) { return d.children?'9':'8';})
             .on('click', function(d, idx, arr) { gApp._itemTreeClick(d);});
 
 
-        nodetree.each(function(d) {
-            //Now add the dependencies lines
-            if (!d.data.record.data.ObjectID) { return; }
-            var deps = d.data.record.get('Successors');
-            if (deps && deps.Count) {
-                gApp._getSuccessors(d.data.record).then (
-                    {
-                        success: function(succs) {
-                            d.dependencies = succs;
-                            //Draw a circle on the end of the first one and make it flash if I can't find the other end one
-                            _.each(succs, function(succ) {
-                                var e = gApp._findTreeNode(gApp._getNodeTreeRecordId(succ));
-                                var targetName = 'Unknown';
-                                var zClass = '';
-                                if (!e) { 
-                                    zClass += 'textBlink';
-                                } else {
-                                    targetName = e.data.Name;
-                                    if (gApp._sequenceError( d, e)) {
-                                        zClass += (zClass.length?' ':'') + 'data--errors';
-                                    }
-                                    else {
-                                        zClass += (zClass.length?' ':'') + 'no--errors';
-                                    }    
-                                }
-                                var zoomTree = d3.select('#zoomTree');
-                                var pathGroup = zoomTree.select('#dep'+ d.data.Name +'-'+ targetName);
-                                if (pathGroup) {
-                                    pathGroup.remove();
-                                }
-                                pathGroup = zoomTree.append('g')
-                                    .attr('id', 'dep'+ d.data.Name +'-'+ targetName)
-                                    .attr('visibility', gApp.down('#showDeps').value?'visible': 'hidden')
-                                    .attr('class', zClass + ' dependencyGroup');
-
-                                //Stuff without end point
-                                var source = d3.select('#group-'+d.data.Name);
-                                var txf = gApp._parseTransform(source.attr('transform'));
-
-                                /** If we get the group as the item relative to the zoomTree, then we can't get the visible width
-                                 * we get given the bounding box of everything including those not shown because of the clipPath.
-                                 * Get a different object to get the shown width.
-                                 **/
-                                var box = d3.select ('#rect-'+d.data.Name);
-                                var x0 = +txf.translate[0] + box.node().getBBox().width;  //Start at the end of the box
-                                var y0 = +txf.translate[1] + gApp._rowHeight/2; //In the middle of the row
-                                pathGroup.append('circle')
-                                    .attr('cx', x0)
-                                    .attr('cy', y0)
-                                    .attr('r', 3)
-                                    .attr('id', 'circle-'+d.data.Name+'-start')
-                                    .on('mouseover', function(a, idx, arr) {    //'a' refers to the wrong thing!
-                                        gApp._createDepsPopover(d, arr[idx], 1);})    //Default to successors
-                                    .attr('class', zClass);
-
-                                if (e) {
-                                    //Stuff that needs endpoint
-                                    var target = d3.select('#group-'+ targetName);
-                                    txf = gApp._parseTransform(target.attr('transform'));
-
-                                    var x1 = +txf.translate[0];
-                                    var y1 = +txf.translate[1] + gApp._rowHeight/2 ;
-
-                                    pathGroup.append('circle')
-                                        .attr('cx', x1)
-                                        .attr('cy', y1)
-                                        .attr('r', 3)
-                                        .attr('id', 'circle-'+targetName+'-end')
-                                        .on('mouseover', function(a, idx, arr) { gApp._createDepsPopover(e, arr[idx], 0);})    //Default to successors
-                                        .attr('class', zClass);
-                        
-                                    zClass += (zClass.length?' ':'') + 'dashed' + (d.data.record.data._type.toLowerCase().includes('portfolioitem/')?(d.data.record.get('PortfolioItemType').Ordinal + 1).toString(): '0');
-                                    
-                                    if (    gApp.getSetting('oneTypeOnly') ||  
-                                        !gApp.getSetting('lowestDependencies') || 
-                                            (d.data.record.get('PortfolioItemType').Ordinal === 0)
-                                    ) {
-                                        pathGroup.append('path')
-                                            .attr('d', 
-                                                'M' + x0 + ',' + y0 + 
-                                                'C' + (x0+80) + ',' + y0  +
-                                                ' ' + (x1-80) + ',' + y1 +
-                                                ' ' + x1 + ',' + y1) 
-                                            .attr('class', zClass);
-
-                                    }
-                                }
-                            });
-                        }
-                    }
-                );
-            }
+        gApp.depsMgr = Ext.create('Niks.Apps.DependencyManager', {
+            canvas: d3.select('#zoomTree')
         });
+
+        gApp.depsMgr.initialiseNodes(nodetree);
         gApp.setLoading(false);
     },
 
@@ -1851,66 +1767,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             fieldLabel: 'Show Dependencies',
             listeners: {
                 select: function() {
-                    switch(this.value) {
-                        case 0: {
-                            d3.selectAll('.dependencyGroup').attr('visibility', 'hidden');
-                            break;
-                        }
-                        case 1: {
-                            d3.selectAll('.dependencyGroup').attr('visibility', 'visible');
-                            break;
-                        }
-                        case 2: {
-                            //Turn them all off and then turn on the ones you want
-                            d3.selectAll('.dependencyGroup').attr('visibility', 'hidden');
-                            // We need to filter on the type of the node, not the SVG group
-                            gApp._nodeTree.each( function(d) {
-                                if ((d.data.record.data._type.startsWith('portfolioitem/')) &&
-                                    (d.data.record.data.PortfolioItemType.Ordinal === 0)) {
-                                        var dDeps = d3.selectAll('[class~=dependencyGroup]').filter(function() {
-                                            return this.getAttribute('id').startsWith('dep' + d.data.Name);
-                                        });
-                                        dDeps.each( function () {
-                                            this.setAttribute('visibility', 'visible');
-                                        });
-                                    }
-                            });
-                            break;
-                        }
-                        case 3: {
-                            //Turn them all off and then turn on the ones you want
-                            d3.selectAll('.dependencyGroup').attr('visibility', 'hidden');
-                            // We need to filter on the type of the node, not the SVG group
-                            gApp._nodeTree.each( function(d) {
-                                if (d.data.record.data._type.toLowerCase() === 'hierarchicalrequirement') {
-                                        var dDeps = d3.selectAll('[class~=dependencyGroup]').filter(function() {
-                                            return this.getAttribute('id').startsWith('dep' + d.data.Name);
-                                        });
-                                        dDeps.each( function () {
-                                            this.setAttribute('visibility', 'visible');
-                                        });
-                                    }
-                            });
-                            break;
-                        }
-                        case 4: {
-                            //Turn them all off and then turn on the ones you want
-                            d3.selectAll('.dependencyGroup').attr('visibility', 'hidden');
-                            // We need to filter on the type of the node, not the SVG group
-                            gApp._nodeTree.each( function(d) {
-                                if (d.data.record.data._type.startsWith('portfolioitem/')) {
-                                        var dDeps = d3.selectAll('[class~=dependencyGroup]').filter(function() {
-                                            return this.getAttribute('id').startsWith('dep' + d.data.Name);
-                                        });
-                                        dDeps.each( function () {
-                                            this.setAttribute('visibility', 'visible');
-                                        });
-                                    }
-                            });
-                            break;
-                        }
-
-                    }
+                    if (gApp.depsMgr) { gApp.depsMgr.setVisibility(this.value);}
                 }
             }
         });

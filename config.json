@@ -5,6 +5,7 @@
     "sdk": "2.1",
     "javascript": [
         "App.js",
+        "DependencyManager.js",
         "DateMixin.js",
         "CFDChart.js",
         "CFDCalc.js",
