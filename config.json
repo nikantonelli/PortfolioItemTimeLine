@@ -5,7 +5,9 @@
     "sdk": "2.1",
     "javascript": [
         "App.js",
-        "DependencyManager.js",
+        "utils/DependencyManager.js",
+        "utils/TreeManager.js",
+        "utils/RecordManager.js",
         "DateMixin.js",
         "CFDChart.js",
         "CFDCalc.js",

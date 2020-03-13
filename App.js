@@ -366,16 +366,20 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     //Continuation point after selectors ready/changed
     _enterMainApp: function() {
 
-        //If timer redraw required, enable it here
+        if ( !gApp.treeMgr) {
+            gApp.treeMgr = Ext.create('Niks.Apps.treeManager', {
+                typeStore: gApp._typeStore
+            });
+        }
         
         //Get all the nodes and the "Unknown" parent virtual nodes
-        var nodetree = gApp._createNodeTree(gApp._nodes);
+        gApp.treeMgr.initialise(gApp._nodes);
         gApp._rowHeight = gApp.getSetting('lineSize') || 22;
-        gApp._restartMainApp(nodetree);
+        gApp._restartMainApp();
     },
 
     /*  We need to force a redraw for a window resize. Remove all the svg items and start again. */
-    _restartMainApp: function(nodetree) {
+    _restartMainApp: function() {
         if (gApp._nodes.length === 0 ) { return; }  //Timer can fire before we have done anything
         var outerSvg = d3.select('svg');
         outerSvg.attr('width', this.getWidth()- 50);
@@ -436,7 +440,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             .attr('transform', 'translate(0,' + axisSvg.attr('height') + ')');    /* Place it after the axisSvg */
 
         
-        scaledSvg.attr('height', gApp._rowHeight *  ((nodetree && nodetree.value)?nodetree.value:1))
+        scaledSvg.attr('height', gApp._rowHeight *  gApp.treeMgr.getValue())
             .attr('width', outerSvg.attr('width') - ( gApp.self.LeftSVGWidth + gApp.self.RightSVGWidth))
             .attr('transform', 'translate(' + gApp.self.LeftSVGWidth + ',0)');
         
@@ -971,7 +975,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         var x = gApp.dateScaler(start);
         var e = gApp.dateScaler(end);
         d.drawnX = (x<0?0:x);
-        d.drawnY = ((d.x0 * (gApp._rowHeight *  gApp._nodeTree.value)) + (d.depth*gApp._rowHeight));
+        d.drawnY = ((d.x0 * (gApp._rowHeight *  gApp.treeMgr.getValue())) + (d.depth*gApp._rowHeight));
         d.drawnWidth = e - d.drawnX;
         d.drawnWidth = d.drawnWidth<=0?gApp._rowHeight:d.drawnWidth;
         var retval =  "translate(" + d.drawnX + "," + d.drawnY + ")";
@@ -984,16 +988,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _refreshTree: function(){
 
-//        console.log(gApp._nodeTree);
-        var nodetree = d3.partition()(gApp._nodeTree);
+        var nodetree = d3.partition()(gApp.treeMgr. getTree());
         var healthField = gApp.getSetting('pointsOrCount')?'PercentDoneByStoryCount':'PercentDoneByStoryPlanEstimate';
         
         nodetree.eachBefore(gApp._initGroupTranslate);
 
         //When we come here and the "oneTypeOnly flag is set, we will have a 'root' node with no data
         //We need to ignore this and not draw anything", so we use 'filter' to remove
-        
-        //Let's scale to the dateline
+    
         var nodeGroups = d3.select('#zoomTree').selectAll(".nodeGroup")
             .data(nodetree.descendants());
 
@@ -1152,7 +1154,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
 
         gApp.depsMgr = Ext.create('Niks.Apps.DependencyManager', {
-            canvas: d3.select('#zoomTree')
+            canvas: d3.select('#zoomTree'),
+            rowHeight: gApp._rowHeight
         });
 
         gApp.depsMgr.initialiseNodes(nodetree);
@@ -1166,30 +1169,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             b[c.shift()] = c;
         }
         return b;
-    },
-
-    _createDepsPopover: function(node, circ, tabOverride) {
-        //Create a zero size container right where the blob is and attach the 
-        //popover to that
-        var panel = Ext.create('Rally.ui.popover.DependenciesPopover',
-            {
-                record: node.data.record,
-                target: circ,
-                autoShow: false,
-                showChevron: false,
-                listeners: {
-                    show: function() {
-                        var activeTab = (node.data.record.get('PredecessorsAndSuccessors').Predecessors === 0) &&
-                                        (node.data.record.get('PredecessorsAndSuccessors').Successors > 0);
-                        panel._getTabPanel().setActiveTab((tabOverride !== undefined)?tabOverride:(activeTab?1:0));
-                        panel.el.setLeftTop (    parseInt(circ.getBBox().x + circ.getBBox().width + gApp._rowHeight), 
-                                                parseInt(circ.getBBox().y + (gApp._rowHeight/2))
-                        );
-                    }
-                }
-            }
-        );         
-        panel.show();
     },
     
     _schedulingErrors: function(d, start, end ) {
@@ -1228,23 +1207,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
     _sequenceError: function(a, b) {
         return (a.endX > b.startX );
-    },
-
-    _getSuccessors: function(record) {
-
-        var deferred = Ext.create('Deft.Deferred');
-        var config = {
-            fetch: true,
-            callback: function(records,operation, success) {
-                if (success) {
-                    deferred.resolve(records);
-                } else {
-                    deferred.reject();
-                }
-            }
-        };
-        record.getCollection('Successors').load(config);
-        return deferred.promise;
     },
     
     _nodeMouseOut: function(node, index,array){
@@ -2177,74 +2139,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         return nodes;
     },
 
-    _findNode: function(nodes, recordData) {
-        var returnNode = null;
-            _.each(nodes, function(node) {
-                if (node.record && (node.record.data._ref === recordData._ref)){
-                     returnNode = node;
-                }
-            });
-        return returnNode;
-    },
 
-    _findParentType: function(record) {
-        //The only source of truth for the hierachy of types is the typeStore using 'Ordinal'
-        var ord = null;
-        for ( var i = 0;  i < gApp._typeStore.totalCount; i++ )
-        {
-            if (record.data._type === gApp._typeStore.data.items[i].get('TypePath').toLowerCase()) {
-                ord = gApp._typeStore.data.items[i].get('Ordinal');
-                break;
-            }
-        }
-        ord += 1;   //We want the next one up, if beyond the list, set type to root
-        //If we fail this, then this code is wrong!
-        if ( i >= gApp._typeStore.totalCount) {
-            return null;
-        }
-        var typeRecord =  _.find(  gApp._typeStore.data.items, function(type) { return type.get('Ordinal') === ord;});
-        return (typeRecord && typeRecord.get('TypePath').toLowerCase());
-    },
-    _findNodeById: function(nodes, id) {
-        return _.find(nodes, function(node) {
-            return node.record.data._ref === id;
-        });
-    },
-    _findParentNode: function(nodes, child){
-        if (child.record.data._ref === 'root') return null;
-
-        //We need to locate based on the type of artefact passed in.
-        var parent = null;
-        
-        if (child.record.data._type.toLowerCase().includes('portfolioitem/')) {
-            parent = child.record.data.Parent;
-        }
-        else if (child.record.data._type.toLowerCase() === 'hierarchicalrequirement') {
-            parent = child.record.data.PortfolioItem;
-        }
-        else if (child.record.data._type.toLowerCase() === 'defect') {
-            parent = child.record.data.Requirement;
-        }
-
-        var pParent = null;
-        if (parent ){
-            //Check if parent already in the node list. If so, make this one a child of that one
-            //Will return a parent, or null if not found
-            pParent = gApp._findNode(nodes, parent);
-        }
-        else {
-            //Here, there is no parent set, so attach to the 'null' parent.
-            var pt = gApp._findParentType(child.record);
-            //If we are at the top, we will allow d3 to make a root node by returning null
-            //If we have a parent type, we will try to return the null parent for this type.
-            if (pt) {
-                var parentName = '/' + pt + '/null';
-                pParent = gApp._findNodeById(nodes, parentName);
-            }
-        }
-        //If the record is a type at the top level, then we must return something to indicate 'root'
-        return pParent?pParent: gApp._findNodeById(nodes, 'root');
-    },
+    
         //Routines to manipulate the types
 
     _getSelectedOrdinal: function() {
@@ -2285,47 +2181,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         return model;
     },
 
-    _getNodeTreeId: function(d) {
-        return d.id;
-    },
-
-    _getNodeTreeRecordId: function(record) {
-        return record.data._ref.split('/').pop();
-    },
-
-    _stratifyNodeTree: function(nodes) {
-        return d3.stratify()
-        .id( function(d) {
-            var retval = (d.record && gApp._getNodeTreeRecordId(d.record)) || null; //No record is an error in the code, try to barf somewhere if that is the case
-            return retval;
-        })
-        .parentId( function(d) {
-            var pParent = gApp._findParentNode(nodes, d);
-            return (pParent && pParent.record && gApp._getNodeTreeRecordId(pParent.record)); })
-        (nodes);
-    },
-
-    _sumNodeTree: function(tree) {
-        tree.each( function(d) { d.value = 0;});
-        return tree.sum(function(d) { return 1;});        // Set the dimensions in svg to match
-    },
-
     _createNodeTree: function (nodes) {
         //Try to use d3.stratify to create nodes
-        var nodetree = gApp._stratifyNodeTree(nodes);
-        gApp._nodeTree = gApp._sumNodeTree(nodetree);      //Save for later
+        gApp.treeMgr.stratify(nodes);
+        gApp.treeMgr.sum();      //Save for later
         return nodetree;
     },
 
-    _findTreeNode: function(id) {
-        var retval = null;
-        gApp._nodeTree.each( function(d) {
-            if (gApp._getNodeTreeId(d) === id) {
-                retval = d;
-            }
-        });
-        return retval;
-    },
 
     _addSVGTree: function() {
 
@@ -2599,27 +2461,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         return deferred.promise;
     },
 
-    _continueLaunch: function() {
-
-        this.on('redrawNodeTree', function() {
-            d3.select('svg').selectAll('g').remove();
-            this._enterMainApp();
-        });
-        this.subscribe(this, Rally.Message.objectUpdate, this._objectUpdated, this);
-
-        //We need a way to detect whether we are running in slm or external. Rendering order is different.
-        if(this.ownerCt) {
-            this._addComponents();
-        }
-        else {
-            this.on ('afterrender', function() {
-                this._addComponents();
-            });
-        }
-    },
-
     _objectUpdated: function(update){
-            var d = gApp._findTreeNode(gApp._getNodeTreeRecordId(update));
+            var d = gApp.treeMgr.findNode(update);
             if (d === null) { return;} 
 //            var node = d3.select('#group-'+d.data.Name);
 //            node.remove();
@@ -2683,6 +2526,29 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         });
         return deferred.promise;
 
+    },
+
+    /** Called after launch() gets the setup done
+     * 
+     */
+
+    _continueLaunch: function() {
+
+        this.on('redrawNodeTree', function() {
+            d3.select('svg').selectAll('g').remove();
+            this._enterMainApp();
+        });
+        this.subscribe(this, Rally.Message.objectUpdate, this._objectUpdated, this);
+
+        //We need a way to detect whether we are running in slm or external. Rendering order is different.
+        if(this.ownerCt) {
+            this._addComponents();
+        }
+        else {
+            this.on ('afterrender', function() {
+                this._addComponents();
+            });
+        }
     },
 
     launch: function() {
