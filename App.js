@@ -348,16 +348,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         gApp.timer = setTimeout(callFunc, 2000);    //Debounce user selections to the tune of two seconds
     },
 
-    _redrawTimer: function() {
-        gApp.fireEvent('redrawNodeTree');
-        gApp._setRedrawTimer();
+    _updateTimer: function() {
+        gApp.fireEvent('updateNodeTree');
+        gApp._setUpdateTimer();
     },
 
-    _setRedrawTimer: function() {
+    _setUpdateTimer: function() {
         var timeout = gApp.getSetting('autoUpdateTime');
         if ( timeout > 0) {
-            if ( gApp.redrawTimer) { clearTimeout(gApp.redrawTimer); }
-            gApp.redrawTimer = setTimeout(gApp._redrawTimer, timeout * 1000);
+            if ( gApp.updateTimer) { clearTimeout(gApp.updateTimer); }
+            gApp.updateTimer = setTimeout(gApp._updateTimer, timeout * 1000);
         }
     },
 
@@ -1158,7 +1158,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             rowHeight: gApp._rowHeight
         });
 
-        gApp.depsMgr.initialiseNodes(nodetree);
+        gApp.depsMgr.initialiseNodes(nodetree, gApp.treeMgr);
         gApp.setLoading(false);
     },
 
@@ -1857,11 +1857,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 }
             });
         }
-//        if (gApp.getSetting('oneTypeOnly')){
-            //Get the records you can see of the type set in the piType selector
-            //and call _getArtifacts with them.
-  //          gApp._fetchOneType();
-  //      }
     },
 
     _fetchOneType: function() {
@@ -2044,7 +2039,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         }
 
         if ( gApp._allThreadsIdle()) {
-            gApp._redrawTimer();
+            gApp.fireEvent('redrawNodeTree');
         }
     },
 
@@ -2123,7 +2118,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             gApp._checkThreadActivity();
         }
         else {
-            gApp._redrawTimer();
+            gApp.fireEvent('redrawNodeTree');
         }
     },
 
@@ -2537,7 +2532,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         this.on('redrawNodeTree', function() {
             d3.select('svg').selectAll('g').remove();
             this._enterMainApp();
+        });        
+        
+        this.on('updateNodeTree', function() {
+            d3.select('svg').selectAll('g').remove();
+            this.onSettingsUpdate();
         });
+
         this.subscribe(this, Rally.Message.objectUpdate, this._objectUpdated, this);
 
         //We need a way to detect whether we are running in slm or external. Rendering order is different.

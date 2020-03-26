@@ -357,16 +357,16 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         gApp.timer = setTimeout(callFunc, 2000);    //Debounce user selections to the tune of two seconds
     },
 
-    _redrawTimer: function() {
-        gApp.fireEvent('redrawNodeTree');
-        gApp._setRedrawTimer();
+    _updateTimer: function() {
+        gApp.fireEvent('updateNodeTree');
+        gApp._setUpdateTimer();
     },
 
-    _setRedrawTimer: function() {
+    _setUpdateTimer: function() {
         var timeout = gApp.getSetting('autoUpdateTime');
         if ( timeout > 0) {
-            if ( gApp.redrawTimer) { clearTimeout(gApp.redrawTimer); }
-            gApp.redrawTimer = setTimeout(gApp._redrawTimer, timeout * 1000);
+            if ( gApp.updateTimer) { clearTimeout(gApp.updateTimer); }
+            gApp.updateTimer = setTimeout(gApp._updateTimer, timeout * 1000);
         }
     },
 
@@ -1167,7 +1167,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             rowHeight: gApp._rowHeight
         });
 
-        gApp.depsMgr.initialiseNodes(nodetree);
+        gApp.depsMgr.initialiseNodes(nodetree, gApp.treeMgr);
         gApp.setLoading(false);
     },
 
@@ -1866,11 +1866,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                 }
             });
         }
-//        if (gApp.getSetting('oneTypeOnly')){
-            //Get the records you can see of the type set in the piType selector
-            //and call _getArtifacts with them.
-  //          gApp._fetchOneType();
-  //      }
     },
 
     _fetchOneType: function() {
@@ -2053,7 +2048,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         }
 
         if ( gApp._allThreadsIdle()) {
-            gApp._redrawTimer();
+            gApp.fireEvent('redrawNodeTree');
         }
     },
 
@@ -2132,7 +2127,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             gApp._checkThreadActivity();
         }
         else {
-            gApp._redrawTimer();
+            gApp.fireEvent('redrawNodeTree');
         }
     },
 
@@ -2546,7 +2541,13 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         this.on('redrawNodeTree', function() {
             d3.select('svg').selectAll('g').remove();
             this._enterMainApp();
+        });        
+        
+        this.on('updateNodeTree', function() {
+            d3.select('svg').selectAll('g').remove();
+            this.onSettingsUpdate();
         });
+
         this.subscribe(this, Rally.Message.objectUpdate, this._objectUpdated, this);
 
         //We need a way to detect whether we are running in slm or external. Rendering order is different.
@@ -2703,7 +2704,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
          */
     },
 
-    initialiseNodes: function(nodetree) {
+    initialiseNodes: function(nodetree, treemanager) {
         var me = this;
         me.nodeTree = nodetree;
         nodetree.each(function(d) {
@@ -2717,7 +2718,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                             d.dependencies = succs;
                             //Draw a circle on the end of the first one and make it flash if I can't find the other end one
                             _.each(succs, function(succ) {
-                                var e = me._findTreeNode(me._getNodeTreeRecordId(succ));
+                                var e = treemanager.findTreeNode(treemanager.getNodeTreeRecordId(succ));
                                 var targetName = 'Unknown';
                                 var zClass = '';
                                 if (!e) { 
@@ -2860,12 +2861,12 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
 
         return d3.stratify()
         .id( function(d) {
-            var retval = (d.record && me._getNodeTreeRecordId(d.record)) || null; //No record is an error in the code, try to barf somewhere if that is the case
+            var retval = (d.record && me.getNodeTreeRecordId(d.record)) || null; //No record is an error in the code, try to barf somewhere if that is the case
             return retval;
         })
         .parentId( function(d) {
             var pParent = me._findParentNode(nodes, d);
-            return (pParent && pParent.record && me._getNodeTreeRecordId(pParent.record)); })
+            return (pParent && pParent.record && me.getNodeTreeRecordId(pParent.record)); })
         (nodes);
     },
 
@@ -2886,14 +2887,14 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
     },
 
     findNode: function(record) {
-        return this._findTreeNode(this._getNodeTreeRecordId(record))
+        return this.findTreeNode(this.getNodeTreeRecordId(record))
     },
 
     _getNodeTreeId: function(d) {
         return d.id;
     },
 
-    _findTreeNode: function(id) {
+    findTreeNode: function(id) {
         var retval = null;
         gApp._nodeTree.each( function(d) {
             if (gApp._getNodeTreeId(d) === id) {
@@ -2919,7 +2920,7 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         });
     },
  
-    _getNodeTreeRecordId: function(record) {
+    getNodeTreeRecordId: function(record) {
         return record.data._ref.split('/').pop();
     },
     
@@ -2978,6 +2979,11 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
         return pParent?pParent: this._findNodeById(nodes, 'root');
     },
 })
+                var Ext = window.Ext4 || window.Ext;
+
+var getRecordId = function(record) {
+    return record.data._ref.split('/').pop();
+}
                 (function () {
     var Ext = window.Ext4 || window.Ext;
 
@@ -22097,340 +22103,6 @@ Object.defineProperty(exports, '__esModule', { value: true });
     </script>
 
 
-
-    <style type="text/css">
-        .tree-arrow {
-  fill: grey;
-}
-.tree-arrow:hover {
-  fill: palegreen;
-}
-.left-arrow {
-  fill: goldenrod;
-}
-.error {
-  fill: #f00;
-}
-.arrowbox {
-  fill: transparent;
-}
-.normalText {
-  font-family: NotoSans,Helvetica,Arial;
-}
-.normalText:hover {
-  fill: #888;
-}
-.dateText {
-  background-color: white;
-  fill: #000000;
-}
-.error--node {
-  fill: #000000;
-}
-.data--errors {
-  fill: brown;
-}
-path.data--errors {
-  fill: none;
-}
-path.dashed0 {
-  stroke-dasharray: none;
-}
-path.dashed1 {
-  stroke-dasharray: 46 4;
-}
-path.dashed2 {
-  stroke-dasharray: 36 4;
-}
-path.dashed3 {
-  stroke-dasharray: 26 4;
-}
-path.dashed4 {
-  stroke-dasharray: 16 4;
-}
-path.dashed5 {
-  stroke-dasharray: 6 4;
-}
-path.dashed6 {
-  stroke-dasharray: 4 4;
-}
-circle.data--errors {
-  fill: #f00;
-}
-rect.data--errors {
-  stroke: #f00;
-  stroke-width: 1px;
-}
-.no--errors {
-  stroke: #111;
-  stroke-width: 1px;
-}
-path.no--errors {
-  fill: none;
-}
-path.data--errors {
-  stroke: #f00;
-  stroke-width: 1px;
-}
-rect.no--errors {
-  stroke: none;
-}
-circle.no--errors {
-  fill: #000;
-}
-.no--errors--not--started {
-  fill: #00ffff;
-  stroke: #111;
-  stroke-width: 2px;
-}
-.no--errors--in--progress {
-  fill: #0f0;
-  stroke: #00f;
-  stroke-width: 2px;
-}
-.boldText {
-  font-weight: bold;
-}
-rect.chosenDate {
-  border: black solid 1px;
-  font-weight: bold;
-  fill: white;
-}
-line.dateline {
-  stroke: #000;
-  stroke-dasharray: 8 2;
-  border: black solid 1px;
-  fill: black;
-}
-line.project--milestone {
-  stroke: green;
-  stroke-dasharray: 4 3;
-  border: green solid 1px;
-  fill: green;
-}
-line.global--milestone {
-  stroke: brown;
-  stroke-dasharray: 2 2;
-  border: brown solid 1px;
-  fill: brown;
-}
-circle.dateline {
-  stroke: black;
-  border: black solid 1px;
-  fill: black;
-}
-circle.project--milestone {
-  stroke: green;
-  border: green solid 1px;
-  fill: green;
-}
-circle.global--milestone {
-  stroke: brown;
-  border: brown solid 1px;
-  fill: brown;
-}
-text.chosenDate {
-  fill: #000000;
-}
-.releases {
-  font-size: 10pt;
-  font-family: NotoSans,Helvetica,Arial;
-}
-.iterations {
-  font-size: 10pt;
-  font-family: NotoSans,Helvetica,Arial;
-}
-.odditeration {
-  fill: none;
-  stroke: grey;
-  stroke-width: 1;
-}
-.eveniteration {
-  fill: #bdc9e1;
-  opacity: 0.5;
-}
-.oddrelease {
-  fill: none;
-  stroke: grey;
-  stroke-width: 1;
-}
-.evenrelease {
-  fill: #d0d1e6;
-  opacity: 0.5;
-}
-.q0-1 {
-  fill: #2b8cbe;
-}
-.q0-2 {
-  fill: #2b8cbe;
-}
-.q1-2 {
-  fill: #a6bddb;
-}
-.q0-3 {
-  fill: #ece7f2;
-}
-.q1-3 {
-  fill: #a6bddb;
-}
-.q2-3 {
-  fill: #2b8cbe;
-}
-.q0-4 {
-  fill: #f1eef6;
-}
-.q1-4 {
-  fill: #bdc9e1;
-}
-.q2-4 {
-  fill: #74a9cf;
-}
-.q3-4 {
-  fill: #0570b0;
-}
-.q0-5 {
-  fill: #f1eef6;
-}
-.q1-5 {
-  fill: #bdc9e1;
-}
-.q2-5 {
-  fill: #74a9cf;
-}
-.q3-5 {
-  fill: #2b8cbe;
-}
-.q4-5 {
-  fill: #045a8d;
-}
-.q0-6 {
-  fill: #f1eef6;
-}
-.q1-6 {
-  fill: #d0d1e6;
-}
-.q2-6 {
-  fill: #a6bddb;
-}
-.q3-6 {
-  fill: #74a9cf;
-}
-.q4-6 {
-  fill: #2b8cbe;
-}
-.q5-6 {
-  fill: #045a8d;
-}
-.q0-7 {
-  fill: #f1eef6;
-}
-.q1-7 {
-  fill: #d0d1e6;
-}
-.q2-7 {
-  fill: #a6bddb;
-}
-.q3-7 {
-  fill: #74a9cf;
-}
-.q4-7 {
-  fill: #3690c0;
-}
-.q5-7 {
-  fill: #0570b0;
-}
-.q6-7 {
-  fill: #034e7b;
-}
-.q0-8 {
-  fill: #fff7fb;
-}
-.q1-8 {
-  fill: #ece7f2;
-}
-.q2-8 {
-  fill: #d0d1e6;
-}
-.q3-8 {
-  fill: #a6bddb;
-}
-.q4-8 {
-  fill: #74a9cf;
-}
-.q5-8 {
-  fill: #3690c0;
-}
-.q6-8 {
-  fill: #0570b0;
-}
-.q7-8 {
-  fill: #034e7b;
-}
-.q0-9 {
-  fill: #fff7fb;
-}
-.q1-9 {
-  fill: #ece7f2;
-}
-.q2-9 {
-  fill: #d0d1e6;
-}
-.q3-9 {
-  fill: #a6bddb;
-}
-.q4-9 {
-  fill: #74a9cf;
-}
-.q5-9 {
-  fill: #3690c0;
-}
-.q6-9 {
-  fill: #0570b0;
-}
-.q7-9 {
-  fill: #045a8d;
-}
-.q8-9 {
-  fill: #023858;
-}
-/* 
- .q0-3{fill:rgb(252,141,89)}  .q1-3{fill:rgb(255,255,191)}  .q2-3{fill:rgb(145,191,219)}
- .q0-4{fill:rgb(215,25,28)}  .q1-4{fill:rgb(253,174,97)}  .q2-4{fill:rgb(171,217,233)}  .q3-4{fill:rgb(44,123,182)}
- .q0-5{fill:rgb(215,25,28)}  .q1-5{fill:rgb(253,174,97)}  .q2-5{fill:rgb(255,255,191)}  .q3-5{fill:rgb(171,217,233)}  .q4-5{fill:rgb(44,123,182)}
- .q0-6{fill:rgb(215,48,39)}  .q1-6{fill:rgb(252,141,89)}  .q2-6{fill:rgb(254,224,144)}  .q3-6{fill:rgb(224,243,248)}  .q4-6{fill:rgb(145,191,219)}  .q5-6{fill:rgb(69,117,180)}
- .q0-7{fill:rgb(215,48,39)}  .q1-7{fill:rgb(252,141,89)}  .q2-7{fill:rgb(254,224,144)}  .q3-7{fill:rgb(255,255,191)}  .q4-7{fill:rgb(224,243,248)}  .q5-7{fill:rgb(145,191,219)}  .q6-7{fill:rgb(69,117,180)}
- .q0-8{fill:rgb(215,48,39)}  .q1-8{fill:rgb(244,109,67)}  .q2-8{fill:rgb(253,174,97)}  .q3-8{fill:rgb(254,224,144)}  .q4-8{fill:rgb(224,243,248)}  .q5-8{fill:rgb(171,217,233)}  .q6-8{fill:rgb(116,173,209)}  .q7-8{fill:rgb(69,117,180)}
- .q0-9{fill:rgb(215,48,39)}  .q1-9{fill:rgb(244,109,67)}  .q2-9{fill:rgb(253,174,97)}  .q3-9{fill:rgb(254,224,144)}  .q4-9{fill:rgb(255,255,191)}  .q5-9{fill:rgb(224,243,248)}  .q6-9{fill:rgb(171,217,233)}  .q7-9{fill:rgb(116,173,209)}  .q8-9{fill:rgb(69,117,180)} 
- */
-@keyframes textBlink {
-  50% {
-    opacity: 0.5;
-  }
-}
-@-webkit-keyframes textBlink {
-  50% {
-    opacity: 0.5;
-  }
-}
-.textBlink {
-  animation: textBlink 1s step-start 0s infinite;
-  -webkit-animation: textBlink 1s step-start 0s infinite;
-}
-.axis path {
-  display: none;
-}
-.axis line {
-  stroke-opacity: 0.3;
-  shape-rendering: crispEdges;
-}
-.icon-gear {
-  fill: teal;
-}
-.icon-gear-white {
-  fill: whitesmoke;
-}
-
-    </style>
 </head>
 <body>
 </body>

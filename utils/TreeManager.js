@@ -20,12 +20,12 @@ Ext.define('Niks.Apps.treeManager', {
 
         return d3.stratify()
         .id( function(d) {
-            var retval = (d.record && me._getNodeTreeRecordId(d.record)) || null; //No record is an error in the code, try to barf somewhere if that is the case
+            var retval = (d.record && me.getNodeTreeRecordId(d.record)) || null; //No record is an error in the code, try to barf somewhere if that is the case
             return retval;
         })
         .parentId( function(d) {
             var pParent = me._findParentNode(nodes, d);
-            return (pParent && pParent.record && me._getNodeTreeRecordId(pParent.record)); })
+            return (pParent && pParent.record && me.getNodeTreeRecordId(pParent.record)); })
         (nodes);
     },
 
@@ -46,14 +46,14 @@ Ext.define('Niks.Apps.treeManager', {
     },
 
     findNode: function(record) {
-        return this._findTreeNode(this._getNodeTreeRecordId(record))
+        return this.findTreeNode(this.getNodeTreeRecordId(record))
     },
 
     _getNodeTreeId: function(d) {
         return d.id;
     },
 
-    _findTreeNode: function(id) {
+    findTreeNode: function(id) {
         var retval = null;
         gApp._nodeTree.each( function(d) {
             if (gApp._getNodeTreeId(d) === id) {
@@ -79,7 +79,7 @@ Ext.define('Niks.Apps.treeManager', {
         });
     },
  
-    _getNodeTreeRecordId: function(record) {
+    getNodeTreeRecordId: function(record) {
         return record.data._ref.split('/').pop();
     },
     

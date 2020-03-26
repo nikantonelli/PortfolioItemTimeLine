@@ -84,7 +84,7 @@ Ext.define('Niks.Apps.DependencyManager', {
          */
     },
 
-    initialiseNodes: function(nodetree) {
+    initialiseNodes: function(nodetree, treemanager) {
         var me = this;
         me.nodeTree = nodetree;
         nodetree.each(function(d) {
@@ -98,7 +98,7 @@ Ext.define('Niks.Apps.DependencyManager', {
                             d.dependencies = succs;
                             //Draw a circle on the end of the first one and make it flash if I can't find the other end one
                             _.each(succs, function(succ) {
-                                var e = me._findTreeNode(me._getNodeTreeRecordId(succ));
+                                var e = treemanager.findTreeNode(treemanager.getNodeTreeRecordId(succ));
                                 var targetName = 'Unknown';
                                 var zClass = '';
                                 if (!e) { 
