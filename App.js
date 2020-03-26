@@ -1266,9 +1266,6 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
                         var activeTab = (node.data.record.get('PredecessorsAndSuccessors').Predecessors === 0) &&
                                         (node.data.record.get('PredecessorsAndSuccessors').Successors > 0);
                         panel._getTabPanel().setActiveTab((tabOverride !== undefined)?tabOverride:(activeTab?1:0));
-                        panel.el.setLeftTop (    parseInt(circ.getBBox().x + circ.getBBox().width + gApp._rowHeight), 
-                                                parseInt(circ.getBBox().y + (gApp._rowHeight/2))
-                        );
                     }
                 }
             }
