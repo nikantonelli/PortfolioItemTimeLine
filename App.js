@@ -1143,7 +1143,8 @@ Ext.define('Nik.apps.PortfolioItemTimeline', {
             })
             .attr('style', 'font-size:' + (gApp._getFontSize()-1))
             .attr('alignment-baseline', 'central')
-            .text(function(d) { return d.children?'9':'8';})
+            .style("text-anchor", 'end')
+            .text(function(d) { return d.children?"@":'?';})
             .on('click', function(d, idx, arr) { gApp._itemTreeClick(d);});
 
 
