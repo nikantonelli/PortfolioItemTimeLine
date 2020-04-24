@@ -170,22 +170,26 @@ text.chosenDate {
 }
 
 .odditeration {
-  fill: none;
-  stroke: grey;
-  stroke-width: 1;
+  fill: lightgrey;
+  opacity: 0.5;
 }
+
 .eveniteration {
-  fill: rgb(189,201,225);
+  fill: white;
+  stroke-width: 1;
+  stroke: lightgrey;
   opacity: 0.5;
 }
 
 .oddrelease {
-  fill: none;
-  stroke: grey;
+  fill: lightblue;
   stroke-width: 1;
+  opacity: 0.5;
 }
 .evenrelease {
-  fill: rgb(208,209,230);
+  fill: white;
+  stroke-width: 1;
+  stroke: lightgrey;
   opacity: 0.5;
 }
 
